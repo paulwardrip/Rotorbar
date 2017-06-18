@@ -1,0 +1,30 @@
+{
+  "name": "rotorbar",
+  "version": "0.0.1",
+  "description": "a wow addon for helping with rotation and cooldowns",
+  "main": "Rotorbar.toc",
+  "devDependencies": {
+    "copy": "^0.3.0",
+    "npm-watch": "^0.1.9"},
+  "watch": {
+    "copy": {
+      "patterns": ["*"],
+      "extensions": "lua,xml,toc",
+      "quiet": false
+    }
+  },
+  "scripts": {
+    "copy": "cp -R addon/* \"C:\\Program Files (x86)\\World of Warcraft\\interface\\addons\\Rotorbar\"",
+    "watch": "npm-watch"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/paulwardrip/Rotorbar.git"
+  },
+  "author": "Paul Wardrip <pwardrip@gmail.com>",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/paulwardrip/Rotorbar/issues"
+  },
+  "homepage": "https://github.com/paulwardrip/Rotorbar#readme"
+}

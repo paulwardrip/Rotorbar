@@ -1,0 +1,9 @@
+## Interface: 50400
+## Title: Rotorbar
+## Author: Paul Wardrip
+## Version: 0.1.1
+
+dk/blood.lua
+dk/frost.lua
+dk/unholy.lua
+main.lua
