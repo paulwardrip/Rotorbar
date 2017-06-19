@@ -1,4 +1,7 @@
 local frame = CreateFrame("Frame", "Rotorbar", UIParent);
+local handler
+local mobsInCombat = {}
+
 Rotorbar = {}
 
 function loadClassHandler()
@@ -37,7 +40,7 @@ function loadClassHandler()
 end
 
 function equipmentUsable(slot)
-    start, duration, enable = GetInventoryItemCooldown("player", slot)
+    local start, duration, enable = GetInventoryItemCooldown("player", slot)
 
     if (enable) then
         if (start == 0) then
@@ -51,8 +54,12 @@ function equipmentUsable(slot)
     return enable == 1, start == 0
 end
 
-function Rotorbar.debuffed(_name)
-    name, rank, icon, count, dispelType, duration, expires, caster, isStealable, nameplateShowPersonal, spellID, canApplyAura, isBossDebuff, _, nameplateShowAll, timeMod, value1, value2, value3 = UnitDebuff("target", _name)
+function Rotorbar.debuffed(_name, target)
+    if (target == nil) then
+        target = "target"
+    end
+
+    local name, rank, icon, count, dispelType, duration, expires, caster = UnitDebuff(target, _name)
 
     if (caster == "player") then
        local timeleft = expires - GetTime()
@@ -67,7 +74,7 @@ function Rotorbar.debuffed(_name)
 end
 
 function Rotorbar.buffed(_name)
-    name, rank, icon, count, dispelType, duration, expires, caster, isStealable, nameplateShowPersonal, spellID, canApplyAura, isBossDebuff, _, nameplateShowAll, timeMod, value1, value2, value3 = UnitBuff("player", _name)
+    local name, rank, icon, count, dispelType, duration, expires, caster = UnitBuff("player", _name)
 
     if (name == nil) then
         return 0, 0
@@ -79,6 +86,36 @@ function Rotorbar.buffed(_name)
             return 1, timeleft
         end
     end
+end
+
+function Rotorbar.targetsInRange(spell)
+    local t = 0
+    for k, v in pairs(mobsInCombat) do
+        if (IsSpellInRange(spell,k)) then
+            t = t + 1
+        end
+    end
+    return t
+end
+
+function Rotorbar.targetsDebuffed(debuff)
+    local t = 0
+    for k, v in pairs(mobsInCombat) do
+        if (Rotorbar.debuffed(debuff,k)) then
+            t = t + 1
+        end
+    end
+    return t
+end
+
+function Rotorbar.targetsNotDebuffed(debuff)
+    local t = 0
+    for k, v in pairs(mobsInCombat) do
+        if (not Rotorbar.debuffed(debuff,k)) then
+            t = t + 1
+        end
+    end
+    return t
 end
 
 function Rotorbar.isBoss()
@@ -93,8 +130,8 @@ end
 function Rotorbar.isUsableCooldown(spell, talent)
     if (talent == nil or talent == true) then
         if (IsUsableSpell(spell)) then
-            start, duration = GetSpellCooldown(spell)
-            gstart, gduration = GetSpellCooldown(61304)
+            local start, duration = GetSpellCooldown(spell)
+            local gstart, gduration = GetSpellCooldown(61304)
             if (start == 0) then
                 return true, 0
             else
@@ -131,18 +168,40 @@ frame:RegisterEvent("UNIT_POWER")
 frame:RegisterEvent("UNIT_SPELLCAST_SUCCEEDED")
 frame:RegisterEvent("ACTIONBAR_SLOT_CHANGED")
 
+frame:RegisterEvent("COMBAT_LOG_EVENT_UNFILTERED")
+
 function showGCD()
-    start, duration, enabled, modRate = GetSpellCooldown(61304)
+    local start, duration, enabled, modRate = GetSpellCooldown(61304)
     frame.cool:SetCooldown(start, duration, modRate)
 end
 
 frame:SetScript("OnEvent", function(self, event, arg1, ...)
-    if (event == "PLAYER_ENTERING_WORLD" or event == "ACTIVE_TALENT_GROUP_CHANGED" or event == "PLAYER_TALENT_UPDATE") then
-        getBindings()
+    if (event == "PLAYER_ENTERING_WORLD") then
         loadClassHandler()
+        getBindings()
 
         equipmentInit(13)
         equipmentInit(14)
+
+    elseif (event == "ACTIVE_TALENT_GROUP_CHANGED") then
+        loadClassHandler()
+        getBindings()
+
+    elseif (event == "PLAYER_TALENT_UPDATE") then
+        loadClassHandler()
+
+    elseif (event == "COMBAT_LOG_EVENT_UNFILTERED") then
+        local type,srcGuid,srcName,_,tarGuid,tarName,_ = select(3,...)
+
+        if (UnitIsEnemy("player", srcGuid)) then
+            if (type == "UNIT_DIED") then
+                mobsInCombat.remove(srcGuid)
+            else
+                if (mobsInCombat[srcGuid] == nil) then
+                    mobsInCombat[srcGuid] = srcName
+                end
+            end
+        end
 
     elseif (event == "ACTIONBAR_SLOT_CHANGED") then
         getBindings()
@@ -177,7 +236,7 @@ function Rotorbar.setIcons(num)
 end
 
 function sitexture(_name)
-    name, rank, icon, castingTime, minRange, maxRange, spellID = GetSpellInfo(_name)
+    local name, rank, icon, castingTime, minRange, maxRange, spellID = GetSpellInfo(_name)
     return icon
 end
 
@@ -187,7 +246,7 @@ function equipmentInit(slot)
     if (eq[slot].usable) then
         local tex = GetInventoryItemTexture(slot)
         eq[slot].icon = Rotorbar.buttonTime(slot, tex)
-        function cooler()
+        local function cooler()
             return GetInventoryItemCooldown("player", slot)
         end
         eq[slot].cool = Rotorbar.cooldown(slot, nil, tex, cooler)
@@ -196,11 +255,11 @@ end
 
 function Rotorbar.equipmentIcon(slot)
     if (eq[slot].usable) then
-        usable, ready, left = equipmentUsable(slot)
+        local usable, ready, left = equipmentUsable(slot)
         if (ready) then
-            return true true eq[slot].icon
+            return true, true, eq[slot].icon
         else
-            return true false eq[slot].cool
+            return true, false, eq[slot].cool
         end
     else
         return false
@@ -250,7 +309,7 @@ function Rotorbar.flash(name,icon,r,g,b,a)
     return f, name
 end
 
-function Rotorbar.cooldown(name,linkcool,icon,cdfn)
+function Rotorbar.cooldown(name,icon,linkcool,cdfn)
     local f = Rotorbar.buttonTime(name)
     f.cool = CreateFrame("Cooldown", nil, f, "CooldownFrameTemplate")
     f.cool:SetAllPoints()
@@ -259,10 +318,10 @@ function Rotorbar.cooldown(name,linkcool,icon,cdfn)
         cdfn = GetSpellCooldown
     end
     function f.showCool()
-        start, duration, enabled, modRate = cdfn(name)
+        local start, duration, enabled, modRate = cdfn(name)
         if (start == nil) then
         else
-            spellleft = 0
+            local spellleft = 0
             if (start > 0) then
                 spellleft = (start+duration)-GetTime()
             end
@@ -270,8 +329,8 @@ function Rotorbar.cooldown(name,linkcool,icon,cdfn)
             if (linkcool == nil) then
                 f.cool:SetCooldown(start, duration, modRate)
             else
-                linkstart, linkduration, linkenabled, linkmodRate = GetSpellCooldown(linkcool)
-                linkleft = 0
+                local linkstart, linkduration, linkenabled, linkmodRate = GetSpellCooldown(linkcool)
+                local linkleft = 0
 
                 if (linkstart == nil) then
                     f.cool:SetCooldown(start, duration, modRate)
@@ -351,7 +410,7 @@ actionIndex = 1
 
 function getBindings()
     for i = 1, GetNumBindings() do
-        commandName, binding1, binding2 = GetBinding(i)
+        local commandName, binding1, binding2 = GetBinding(i)
         if (string.match(commandName, "ACTIONBUTTON") or string.match(commandName, "MULTIACTION")) then
             local key = binding2
             if (key == nil) then
@@ -372,38 +431,38 @@ function getBindings()
     end
 
     for i = 1, 24 do
-        maintype, actionid, subtype = GetActionInfo(i)
+        local maintype, actionid, subtype = GetActionInfo(i)
         if (maintype == "spell") then
-            name, rank, icon, castingTime, minRange, maxRange, spellID = GetSpellInfo(actionid)
+            local name, rank, icon, castingTime, minRange, maxRange, spellID = GetSpellInfo(actionid)
             whatsbound[i].spell = name
         end
     end
     for i = 25, 30 do
-        maintype, actionid, subtype = GetActionInfo(i)
+        local maintype, actionid, subtype = GetActionInfo(i)
         if (maintype == "spell") then
-            name, rank, icon, castingTime, minRange, maxRange, spellID = GetSpellInfo(actionid)
+            local name, rank, icon, castingTime, minRange, maxRange, spellID = GetSpellInfo(actionid)
             whatsbound[i + 23].spell = name
         end
     end
     for i = 31, 42 do
-        maintype, actionid, subtype = GetActionInfo(i)
+        local maintype, actionid, subtype = GetActionInfo(i)
         if (maintype == "spell") then
-            name, rank, icon, castingTime, minRange, maxRange, spellID = GetSpellInfo(actionid)
+            local name, rank, icon, castingTime, minRange, maxRange, spellID = GetSpellInfo(actionid)
         end
     end
 
     for i = 48, 60 do
-        maintype, actionid, subtype = GetActionInfo(i)
+        local maintype, actionid, subtype = GetActionInfo(i)
         if (maintype == "spell") then
-            name, rank, icon, castingTime, minRange, maxRange, spellID = GetSpellInfo(actionid)
+            local name, rank, icon, castingTime, minRange, maxRange, spellID = GetSpellInfo(actionid)
             whatsbound[i-13].spell = name
         end
     end
 
     for i = 61, 66 do
-        maintype, actionid, subtype = GetActionInfo(i)
+        local maintype, actionid, subtype = GetActionInfo(i)
         if (maintype == "spell") then
-            name, rank, icon, castingTime, minRange, maxRange, spellID = GetSpellInfo(actionid)
+            local name, rank, icon, castingTime, minRange, maxRange, spellID = GetSpellInfo(actionid)
             whatsbound[i-37].spell = name
         end
     end

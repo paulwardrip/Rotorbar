@@ -1,4 +1,5 @@
 Frost = {
+    freezingFog = false,
     hornOfWinter = false,
     hungeringRuneWeapon = false,
     frostscythe = false,
@@ -18,9 +19,11 @@ function Frost.init()
 
     for tcol = 1,3 do
         for ttier = 1,7 do
-            talentID, name, texture, selected, available, spellID, unknown, row, column, known = GetTalentInfo(ttier,tcol,GetActiveSpecGroup())
+            local talentID, name, texture, selected = GetTalentInfo(ttier,tcol,GetActiveSpecGroup())
 
-            if (name == "Horn of Winter" and selected) then
+            if (name == "Freezing Fog" and selected) then
+                Frost.freezingFog = true
+            elseif (name == "Horn of Winter" and selected) then
                 Frost.hornOfWinter = true
                 Frost.icons.hornOfWinter =  Rotorbar.buttonTime("Horn of Winter", texture);
             elseif (name == "Hungering Rune Weapon" and selected) then
@@ -32,9 +35,11 @@ function Frost.init()
             elseif (name == "Obliteration" and selected) then
                 Frost.obliteration = true
                 Frost.icons.obliteration =  Rotorbar.buttonTime("Obliteration", texture);
+                Frost.cools.obliteration = Rotorbar.cooldown("Obliteration")
             elseif (name == "Breath of Sindragosa" and selected) then
                 Frost.breathOfSindragosa = true
                 Frost.icons.breathOfSindragosa =  Rotorbar.buttonTime("Breath of Sindragosa", texture);
+                Frost.cools.breathOfSindragosa = Rotorbar.cooldown("Breath of Sindragosa", texture, "Hungering Rune Weapon")
             elseif (name == "Glacial Advance" and selected) then
                 Frost.glacialAdvance = true
                 Frost.icons.glacialAdvance =  Rotorbar.buttonTime("Glacial Advance", texture);
@@ -56,16 +61,14 @@ function Frost.init()
     Frost.icons.remorselessWinter =  Rotorbar.buttonTime("Remorseless Winter")
     Frost.icons.pillarOfFrost =  Rotorbar.buttonTime("Pillar of Frost")
 
-    Frost.cools.breathOfSindragosa = Rotorbar.cooldown("Breath of Sindragosa", "Hungering Rune Weapon")
     Frost.cools.sindragosasFury = Rotorbar.cooldown("Sindragosa's Fury")
-    Frost.cools.obliteration = Rotorbar.cooldown("Obliteration")
     Frost.cools.pillarOfFrost = Rotorbar.cooldown("Pillar of Frost")
 
     return function()
         local showPos = 0
         local showIcons = {}
 
-        function showNext(icon)
+        local function showNext(icon)
             showIcons[showPos] = icon
             showPos = showPos + 1
         end
@@ -83,7 +86,7 @@ function Frost.init()
 
         -- Icebound Fortitude when critical
         if (IsUsableSpell("Icebound Fortitude")) then
-            start, duration = GetSpellCooldown("Icebound Fortitude")
+            local start, duration = GetSpellCooldown("Icebound Fortitude")
             if (start == 0 and healthpercent < .30) then
                showNext (Frost.flash.iceboundFortitude)
             end
@@ -94,9 +97,14 @@ function Frost.init()
         local rime = Rotorbar.buffed("Rime")
         local killingMachine = Rotorbar.buffed("Killing Machine")
         local breathActive = Rotorbar.buffed("Breath of Sindragosa")
-        local frostFever = Rotorbar.debuffed("Frost Fever")
         local obliterationActive = Rotorbar.buffed("Obliteration")
         local showedObliterate = false
+        local showedHowling = false
+
+        local scythe = 0
+        if (Frost.frostscythe) then
+            scythe = Rotorbar.targetsInRange("Frostscythe")
+        end
 
         -- Horn of Winter, when resources depleted.
         if (Rotorbar.isUsableCooldown("Horn of Winter", Frost.hornOfWinter) and runes < 2 and runicPercent < .25) then
@@ -107,12 +115,19 @@ function Frost.init()
         if (obliterationActive > 0) then
             -- Killing Machine: flashes Obliterate and if available, Frostscythe
             if (killingMachine > 0) then
-                if (IsUsableSpell("Obliterate")) then
-                    showNext(Frost.flash.obliterate)
-                end
-                if (Frost.frostscythe and IsUsableSpell("Frostscythe")) then
+
+                -- Frostscythe Killing Machine
+                -- FS: 3 targets ~ 1800% +- mastery
+                if (scythe >= 3 and Rotorbar.isUsableCooldown("Frostscythe")) then
                     showNext(Frost.flash.frostscythe)
                 end
+
+                -- Obliterate Crit: 1800%
+                if (IsUsableSpell("Obliterate")) then
+                    showNext(Frost.flash.obliterate)
+                    showedObliterate = true
+                end
+
             end
 
             -- Obliteration: Frost Strike to trigger next Killing Machine.
@@ -120,30 +135,24 @@ function Frost.init()
                 showNext(Frost.icons.frostStrike)
             end
 
-             -- Rime: flashing Howling Blast
-            if (rime > 0 and IsUsableSpell("Howling Blast")) then
-                showNext(Frost.flash.howlingBlast)
-            end
-
         else
-            -- Rime: flashing Howling Blast
-            if (rime > 0 and IsUsableSpell("Howling Blast")) then
+            -- A rime proc needs 3 targets to overtake Obliterate in damage.
+            local howlingRange = Rotorbar.targetsInRange("Howling Blast")
+            if (rime > 0 and IsUsableSpell("Howling Blast") and (howlingRange >= 3 or (Frost.freezingFog and howlingRange >= 2) or not IsUsableSpell("Obliterate"))) then
                 showNext(Frost.flash.howlingBlast)
+                showedHowling = true
             end
 
             -- Killing Machine: flashes Obliterate and if available, Frostscythe
             if (killingMachine > 0) then
-                if (IsUsableSpell("Obliterate")) then
-                    showNext(Frost.flash.obliterate)
-                end
-                if (Frost.frostscythe and IsUsableSpell("Frostscythe")) then
+                if (scythe >= 3) then
                     showNext(Frost.flash.frostscythe)
                 end
-            end
 
-            -- Obliteration: Frost Strike to trigger next Killing Machine.
-            if (obliterationActive > 0 and IsUsableSpell("Frost Strike")) then
-                showNext(Frost.icons.frostStrike)
+                if (IsUsableSpell("Obliterate")) then
+                    showNext(Frost.flash.obliterate)
+                    showedObliterate = true
+                end
             end
         end
 
@@ -160,13 +169,13 @@ function Frost.init()
         end
 
         -- Sindragosa Fury
-        furyGo = Rotorbar.isUsableCooldown("Sindragosa's Fury")
+        local furyGo = Rotorbar.isUsableCooldown("Sindragosa's Fury")
         if (furyGo and Rotorbar.isBoss()) then
             showNext(Frost.icons.sindragosasFury)
         end
 
         -- Breath of Sindragosa
-        breathGo, breathCool = Rotorbar.isUsableCooldown("Breath of Sindragosa", Frost.breathOfSindragosa)
+        local breathGo, breathCool = Rotorbar.isUsableCooldown("Breath of Sindragosa", Frost.breathOfSindragosa)
         if (breathGo and runicPercent == 1 and Rotorbar.isBoss()) then
             if (Frost.hungeringRuneWeapon) then
                 if (runeWeaponGo) then
@@ -199,17 +208,31 @@ function Frost.init()
         end
 
         -- Obliteration
-        obliterationGo, obliterationCool = Rotorbar.isUsableCooldown("Obliteration", Frost.obliteration)
+        local obliterationGo, obliterationCool = Rotorbar.isUsableCooldown("Obliteration", Frost.obliteration)
         if (obliterationGo and runicPercent > .75) then
             showNext(Frost.icons.obliteration)
         end
 
         -- Frost Fever Needed
-        if (rime == 0 and frostFever == 0 and Rotorbar.isUsableCooldown("Howling Blast")) then
+        if (not showedHowling and Rotorbar.targetsNotDebuffed("Frost Fever") > 0 and Rotorbar.isUsableCooldown("Howling Blast")) then
             showNext(Frost.icons.howlingBlast)
+            showedHowling = true
         end
 
-        -- Frost Strike
+        -- Obliterate/Frostscythe, non-killingMachine
+        -- Frostscythe w/ mastery: ~150%
+        -- Obliterate: ~900%
+        -- Frostscythe would need 5 targets (20% critical ~= 1 in 5) to equal Obliterate damage
+        if (not showedObliterate) then
+            if (scythe >= 5 and Rotorbar.isUsableCooldown("Frostscythe")) then
+                showNext(Frost.icons.frostscythe)
+            end
+            if (Rotorbar.isUsableCooldown("Obliterate")) then
+                showNext(Frost.icons.obliterate)
+            end
+        end
+
+        -- Frost Strike ~650% w/ some mastery
         if (Rotorbar.isUsableCooldown("Frost Strike")) then
             if (Frost.breathOfSindragosa and breathActive == 0) then
                 if (not Rotorbar.isBoss() or (not breathGo and breathCool > 15) or (not runeWeaponGo and runeWeaponCool > 15)) then
@@ -224,21 +247,22 @@ function Frost.init()
             end
         end
 
-        -- Obliterate/Frostscythe, non-killingMachine
-        if (not showedObliterate and killingMachine == 0) then
-            if (Rotorbar.isUsableCooldown("Obliterate")) then
-                showNext(Frost.icons.obliterate)
-            end
-            if (Rotorbar.isUsableCooldown("Frostscythe", Frost.frostscythe)) then
-                showNext(Frost.icons.frostscythe)
-            end
-        end
-
         -- Howling Blast as last resort spell
-        if (rime == 0 and frostFever > 0 and IsUsableSpell("Howling Blast")) then
+        if (not showedHowling and IsUsableSpell("Howling Blast")) then
             showNext(Frost.icons.howlingBlast)
         end
 
+
+
+        -- Trinket Ready Icons
+        local t1useable, t1ready, t1icon = Rotorbar.equipmentIcon(13)
+        local t2useable, t2ready, t2icon = Rotorbar.equipmentIcon(14)
+
+        if (t1useable and t1ready) then showNext(t1icon) end
+        if (t2useable and t2ready) then showNext(t2icon) end
+
+
+        -- Show Cooldowns
         if (Frost.breathOfSindragosa and Rotorbar.isBoss()) then
             if (not breathGo or (Frost.hungeringRuneWeapon and not runeWeaponGo)) then
                 showNext(Frost.cools.breathOfSindragosa)
@@ -256,6 +280,11 @@ function Frost.init()
         if (not pillarGo) then
             showNext(Frost.cools.pillarOfFrost)
         end
+
+        -- Trinket Cooldown Icons
+        if (t1useable and not t1ready) then showNext(t1icon) end
+        if (t2useable and not t2ready) then showNext(t2icon) end
+
 
 
         Rotorbar.resetButtons()
