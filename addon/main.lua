@@ -1,6 +1,56 @@
 local frame = CreateFrame("Frame", "Rotorbar", UIParent);
 Rotorbar = {}
 
+function loadClassHandler()
+    local currentSpec = GetSpecialization()
+
+    if (UnitClass("player") == "Death Knight") then
+        if (currentSpec == 1) then
+            handler = Blood.init()
+            handler()
+
+        elseif (currentSpec == 2) then
+            handler = Frost.init()
+            handler()
+
+        elseif (currentSpec == 3) then
+            handler = Unholy.init()
+            handler()
+        end
+
+     elseif (UnitClass("player") == "Priest") then
+            print (currentSpec)
+
+        if (currentSpec == 1) then
+            handler = Discipline.init()
+            handler()
+
+        elseif (currentSpec == 2) then
+            handler = HolyPriest.init()
+            handler()
+
+        elseif (currentSpec == 3) then
+            handler = Shadow.init()
+            handler()
+        end
+    end
+end
+
+function equipmentUsable(slot)
+    start, duration, enable = GetInventoryItemCooldown("player", slot)
+
+    if (enable) then
+        if (start == 0) then
+            return true, true, 0
+        else
+            return true, false, ((start+duration)-GetTime())
+        end
+    else
+        return false
+    end
+    return enable == 1, start == 0
+end
+
 function Rotorbar.debuffed(_name)
     name, rank, icon, count, dispelType, duration, expires, caster, isStealable, nameplateShowPersonal, spellID, canApplyAura, isBossDebuff, _, nameplateShowAll, timeMod, value1, value2, value3 = UnitDebuff("target", _name)
 
@@ -63,25 +113,6 @@ function Rotorbar.isUsableCooldown(spell, talent)
     end
 end
 
-function loadClassHandler()
-    if (UnitClass("player") == "Death Knight") then
-        local currentSpec = GetSpecialization()
-
-        if (currentSpec == 1) then
-            handler = Blood.init()
-            handler()
-            
-        elseif (currentSpec == 2) then
-            handler = Frost.init()
-            handler()
-        
-        elseif (currentSpec == 3) then
-            handler = Unholy.init()
-            handler()
-        end
-    end
-end
-
 frame:SetMovable(true)
 frame:EnableMouse(true)
 
@@ -98,6 +129,7 @@ frame:RegisterEvent("ACTIONBAR_UPDATE_USABLE")
 frame:RegisterEvent("UNIT_AURA")
 frame:RegisterEvent("UNIT_POWER")
 frame:RegisterEvent("UNIT_SPELLCAST_SUCCEEDED")
+frame:RegisterEvent("ACTIONBAR_SLOT_CHANGED")
 
 function showGCD()
     start, duration, enabled, modRate = GetSpellCooldown(61304)
@@ -108,6 +140,13 @@ frame:SetScript("OnEvent", function(self, event, arg1, ...)
     if (event == "PLAYER_ENTERING_WORLD" or event == "ACTIVE_TALENT_GROUP_CHANGED" or event == "PLAYER_TALENT_UPDATE") then
         getBindings()
         loadClassHandler()
+
+        equipmentInit(13)
+        equipmentInit(14)
+
+    elseif (event == "ACTIONBAR_SLOT_CHANGED") then
+        getBindings()
+
     else
         if (handler == nil) then
         else
@@ -122,12 +161,16 @@ frame:SetHeight(40+20)
 frame:ClearAllPoints()
 frame:SetBackdrop(StaticPopup1:GetBackdrop())
 frame:SetPoint("CENTER",UIParent)
-frame:SetPoint("Top", UIParent, 0, -100)
+frame:SetPoint("Top", UIParent, 0, -20)
 frame:Show()
 
 buttonpos = 0
 buttonfr = {}
 blcurr = 0
+gcdmade = false
+eq = {}
+
+
 
 function Rotorbar.setIcons(num)
     frame:SetWidth((36*num) + 56)
@@ -138,58 +181,61 @@ function sitexture(_name)
     return icon
 end
 
-function Rotorbar.classIcon(r, g, b, a)
-    frame.gcd = CreateFrame("Frame", nil, frame)
-    frame.gcd:SetSize(36,36)
-    frame.gcd:SetPoint("Left", frame, 10, 0)
+function equipmentInit(slot)
+    eq[slot] = {}
+    eq[slot].usable = equipmentUsable(slot)
+    if (eq[slot].usable) then
+        local tex = GetInventoryItemTexture(slot)
+        eq[slot].icon = Rotorbar.buttonTime(slot, tex)
+        function cooler()
+            return GetInventoryItemCooldown("player", slot)
+        end
+        eq[slot].cool = Rotorbar.cooldown(slot, nil, tex, cooler)
+    end
+end
 
-    frame.icon = frame.gcd:CreateTexture(nil,"CENTER")
-    frame.icon:SetAllPoints()
+function Rotorbar.equipmentIcon(slot)
+    if (eq[slot].usable) then
+        usable, ready, left = equipmentUsable(slot)
+        if (ready) then
+            return true true eq[slot].icon
+        else
+            return true false eq[slot].cool
+        end
+    else
+        return false
+    end
+end
+
+function Rotorbar.classIcon(r, g, b, a)
+    if (not gcdmade) then
+        frame.gcd = CreateFrame("Frame", nil, frame)
+        frame.gcd:SetSize(36,36)
+        frame.gcd:SetPoint("Left", frame, 10, 0)
+
+        frame.icon = frame.gcd:CreateTexture(nil,"CENTER")
+        frame.icon:SetAllPoints()
+
+        frame.cool = CreateFrame("Cooldown", nil, frame.gcd, "CooldownFrameTemplate")
+        frame.cool:SetAllPoints()
+
+        gcdmade = true
+    end
+
     local _,class = UnitClass("player")
     frame.icon:SetTexture("Interface\\GLUES\\CHARACTERCREATE\\UI-CHARACTERCREATE-CLASSES");
     local coords = CLASS_ICON_TCOORDS[class]
     frame.icon:SetTexCoord(unpack(coords))
     frame.icon:SetVertexColor(r,g,b,a)
 
-    frame.cool = CreateFrame("Cooldown", nil, frame.gcd, "CooldownFrameTemplate")
-    frame.cool:SetAllPoints()
 end
 
-function Rotorbar.pulse(name,icon,r,g,b,a)
-    local f=CreateFrame("Frame",nil,frame,"SpellActivationOverlayTemplate")
-    local spell = CreateFrame("Button",nil,f,"ActionButtonTemplate")
-    f:SetSize(36,36)
-    spell:SetSize(36,36)
-    f:SetPoint("CENTER")
-    spell:SetPoint("CENTER")
-    f:Hide()
-
-    f.name = name
-    if (icon) then
-    else
-        icon = sitexture(name)
+function Rotorbar.runes()
+    local count = 0
+    for i = 1, 6 do
+        count = count + GetRuneCount(i)
     end
-    f.texture:SetTexture(icon)
-    if (r == nill) then
-    else
-        f.texture:SetVertexColor(r,g,b,a)
-    end
-
-    local k = findKey(name)
-
-    if (k == nil) then
-    else
-        f.label = f:CreateFontString()
-        f.label:SetPoint("TOPRIGHT", f, "TOPRIGHT", 5, 5)
-        f.label:SetSize(36, 36)
-        f.label:SetFont("Fonts\\ARIALN.TTF", 15, "OUTLINE")
-        f.label:SetText(k)
-    end
-
-   buttonfr[buttonpos] = f;
-   buttonpos = buttonpos + 1
-
-    return f, name
+    return count
 end
 
 function Rotorbar.flash(name,icon,r,g,b,a)
@@ -201,6 +247,44 @@ function Rotorbar.flash(name,icon,r,g,b,a)
         f:SetPoint("Left", UIParent, -50, -50)
     end)
 
+    return f, name
+end
+
+function Rotorbar.cooldown(name,linkcool,icon,cdfn)
+    local f = Rotorbar.buttonTime(name)
+    f.cool = CreateFrame("Cooldown", nil, f, "CooldownFrameTemplate")
+    f.cool:SetAllPoints()
+    f.cooldownButton = true
+    if (cdfn == nil) then
+        cdfn = GetSpellCooldown
+    end
+    function f.showCool()
+        start, duration, enabled, modRate = cdfn(name)
+        if (start == nil) then
+        else
+            spellleft = 0
+            if (start > 0) then
+                spellleft = (start+duration)-GetTime()
+            end
+
+            if (linkcool == nil) then
+                f.cool:SetCooldown(start, duration, modRate)
+            else
+                linkstart, linkduration, linkenabled, linkmodRate = GetSpellCooldown(linkcool)
+                linkleft = 0
+
+                if (linkstart == nil) then
+                    f.cool:SetCooldown(start, duration, modRate)
+                elseif (linkstart > 0) then
+                    linkleft = (linkstart+linkduration)-GetTime()
+                elseif (linkleft <= spellleft) then
+                    f.cool:SetCooldown(start, duration, modRate)
+                else
+                    f.cool:SetCooldown(linkstart, linkduration, linkmodRate)
+                end
+            end
+        end
+    end
     return f, name
 end
 
@@ -249,6 +333,9 @@ end
 function Rotorbar.buttonActive(spell)
     spell:SetPoint("Left", frame, (blcurr  * 36) + 46, 0)
     spell:Show()
+    if (spell.cooldownButton) then
+        spell.showCool()
+    end
     blcurr = blcurr + 1
 end
 

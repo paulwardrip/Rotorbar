@@ -6,4 +6,7 @@
 dk/blood.lua
 dk/frost.lua
 dk/unholy.lua
+priest/discipline.lua
+priest/holy.lua
+pries/shadow.lua
 main.lua
