@@ -3,10 +3,13 @@
 ## Author: Paul Wardrip
 ## Version: 0.1.1
 
+dummy.lua
 dk/blood.lua
 dk/frost.lua
 dk/unholy.lua
 priest/discipline.lua
 priest/holy.lua
-pries/shadow.lua
+priest/shadow.lua
+events.lua
+classhandlers.lua
 main.lua

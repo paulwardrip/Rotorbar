@@ -1,63 +1,68 @@
 HolyPriest = {
-    angelicFeather = false,
-    bodyAndMind = false,
-    shiningForce = false,
-    symbolOfHope = false,
-    divineStar = false,
-    halo = false,
-    circleOfHealing = false,
-    apotheosis = false,
     icons = {},
     flash = {},
     cools = {},
-    color = {}
+    color = {},
+    loaded = false
 }
 
 function HolyPriest.init()
-    print ("Rotorbar Loaded Holy Priest");
+    HolyPriest.angelicFeather = false
+    HolyPriest.bodyAndMind = false
+    HolyPriest.shiningForce = false
+    HolyPriest.symbolOfHope = false
+    HolyPriest.divineStar = false
+    HolyPriest.halo = false
+    HolyPriest.circleOfHealing = false
+    HolyPriest.apotheosis = false
 
-    Rotorbar.classIcon(1, 1, 1, 0.75)
+    Rotorbar.classIcon()
 
-        for tcol = 1,3 do
-            for ttier = 1,7 do
-                local talentID, name, texture, selected = GetTalentInfo(ttier,tcol,GetActiveSpecGroup())
+    for tcol = 1,3 do
+        for ttier = 1,7 do
+            local talentID, name, texture, selected = GetTalentInfo(ttier,tcol,GetActiveSpecGroup())
 
-                if (name == "Angelic Feather" and selected) then
-                    HolyPriest.angelicFeather = true
-                    HolyPriest.cools.angelicFeather =  Rotorbar.cooldown("Angelic Feather", texture);
-                elseif (name == "Body and Mind" and selected) then
-                    HolyPriest.bodyAndMind = true
-                    HolyPriest.cools.bodyAndMind =  Rotorbar.cooldown("BodyAndMind", texture);
-                elseif (name == "Shining Force" and selected) then
-                    HolyPriest.shiningForce = true
-                    HolyPriest.cools.shiningForce =  Rotorbar.cooldown("Shining Force", texture);
-                elseif (name == "Symbol of Hope" and selected) then
-                    HolyPriest.symbolOfHope = true
-                    HolyPriest.cools.symbolOfHope =  Rotorbar.cooldown("Symbol of Hope", texture);
-                elseif (name == "Divine Star" and selected) then
-                    HolyPriest.divineStar = true
-                    HolyPriest.cools.divineStar =  Rotorbar.cooldown("Divine Star", texture);
-                elseif (name == "Halo" and selected) then
-                    HolyPriest.halo = true
-                    HolyPriest.cools.halo =  Rotorbar.cooldown("Halo", texture);
-                elseif (name == "Circle of Healing" and selected) then
-                    HolyPriest.circleOfHealing = true
-                    HolyPriest.cools.circleOfHealing =  Rotorbar.cooldown("Circle of Healing", texture);
-                elseif (name == "Apotheosis" and selected) then
-                    HolyPriest.apotheosis = true
-                    HolyPriest.cools.apotheosis =  Rotorbar.cooldown("Apotheosis", texture);
-                end
+            if (name == "Angelic Feather" and selected) then
+                HolyPriest.angelicFeather = true
+            elseif (name == "Body and Mind" and selected) then
+                HolyPriest.bodyAndMind = true
+            elseif (name == "Shining Force" and selected) then
+                HolyPriest.shiningForce = true
+            elseif (name == "Symbol of Hope" and selected) then
+                HolyPriest.symbolOfHope = true
+            elseif (name == "Divine Star" and selected) then
+                HolyPriest.divineStar = true
+            elseif (name == "Halo" and selected) then
+                HolyPriest.halo = true
+            elseif (name == "Circle of Healing" and selected) then
+                HolyPriest.circleOfHealing = true
+            elseif (name == "Apotheosis" and selected) then
+                HolyPriest.apotheosis = true
             end
         end
+    end
 
-    HolyPriest.cools.prayerOfMending = Rotorbar.cooldown("Prayer of Mending")
-    HolyPriest.cools.holyWordSerenity = Rotorbar.cooldown("Holy Word: Serenity")
-    HolyPriest.cools.holyWordSanctify = Rotorbar.cooldown("Holy Word: Sanctify")
-    HolyPriest.cools.lightOfTuure = Rotorbar.cooldown("Light of T'uure")
-    HolyPriest.cools.purify = Rotorbar.cooldown("Purify")
-    HolyPriest.cools.massDispel = Rotorbar.cooldown("Mass Dispel")
-    HolyPriest.cools.divineHymn = Rotorbar.cooldown("Divine Hymn")
-    HolyPriest.cools.guardianSpirit = Rotorbar.cooldown("Guardian Spirit")
+    if (not HolyPriest.loaded) then
+        HolyPriest.cools.prayerOfMending = Rotorbar.cooldown("Prayer of Mending")
+        HolyPriest.cools.holyWordSerenity = Rotorbar.cooldown("Holy Word: Serenity")
+        HolyPriest.cools.holyWordSanctify = Rotorbar.cooldown("Holy Word: Sanctify")
+        HolyPriest.cools.lightOfTuure = Rotorbar.cooldown("Light of T'uure")
+        HolyPriest.cools.purify = Rotorbar.cooldown("Purify")
+        HolyPriest.cools.massDispel = Rotorbar.cooldown("Mass Dispel")
+        HolyPriest.cools.divineHymn = Rotorbar.cooldown("Divine Hymn")
+        HolyPriest.cools.guardianSpirit = Rotorbar.cooldown("Guardian Spirit")
+
+        HolyPriest.cools.angelicFeather =  Rotorbar.cooldown("Angelic Feather");
+        HolyPriest.cools.bodyAndMind =  Rotorbar.cooldown("Body And Mind");
+        HolyPriest.cools.shiningForce =  Rotorbar.cooldown("Shining Force");
+        HolyPriest.cools.symbolOfHope =  Rotorbar.cooldown("Symbol of Hope");
+        HolyPriest.cools.divineStar =  Rotorbar.cooldown("Divine Star");
+        HolyPriest.cools.halo =  Rotorbar.cooldown("Halo");
+        HolyPriest.cools.circleOfHealing =  Rotorbar.cooldown("Circle of Healing");
+        HolyPriest.cools.apotheosis =  Rotorbar.cooldown("Apotheosis");
+
+        HolyPriest.loaded = true
+    end
 
     return function()
         local showPos = 0

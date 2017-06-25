@@ -6,63 +6,69 @@ Blood = {
     runeTap = false,
     bonestorm = false,
     bloodMirror = false,
+
     icons = {},
     color = {},
     flash = {},
-    cools = {}
+    cools = {},
+
+    loaded = false
 }
 
 Blood.init = function()
-    print ("Rotorbar Loaded Blood Death Knight");
-
-    Rotorbar.classIcon(1, 0.5, 0.5, 0.75)
+    Rotorbar.classIcon(1, 0, 0, 1)
 
     for tcol = 1,3 do
         for ttier = 1,7 do
             talentID, name, texture, selected, available, spellID, unknown, row, column, known = GetTalentInfo(ttier,tcol,GetActiveSpecGroup())
 
-            if (name == "Blooddrinker" and selected) then
-                Blood.blooddrinker = true
-                Blood.icons.blooddrinker =  Rotorbar.buttonTime("Blooddrinker", texture);
+            if (name == "Blooddrinker") then
+                Blood.blooddrinker = selected
 
-            elseif (name == "Blood Tap" and selected) then
-                Blood.bloodTap = true
-                Blood.icons.bloodTap =  Rotorbar.buttonTime("Blood Tap", texture);
+            elseif (name == "Blood Tap") then
+                Blood.bloodTap = selected
 
-            elseif (name == "Mark of Blood" and selected) then
-                Blood.markOfBlood = true
-                Blood.icons.markOfBlood =  Rotorbar.buttonTime("Mark of Blood", texture);
+            elseif (name == "Mark of Blood") then
+                Blood.markOfBlood = selected
 
-            elseif (name == "Tombstone" and selected) then
-                Blood.tombstone = true
-                Blood.icons.tombstone =  Rotorbar.buttonTime("Tombstone", texture);
+            elseif (name == "Tombstone") then
+                Blood.tombstone = selected
 
-            elseif (name == "Rune Tap" and selected) then
-                Blood.runeTap = true
-                Blood.icons.runeTap =  Rotorbar.buttonTime("Rune Tap", texture);
+            elseif (name == "Rune Tap") then
+                Blood.runeTap = selected
 
-            elseif (name == "Bonestorm" and selected) then
-                Blood.bonestorm = true
-                Blood.icons.bonestorm =  Rotorbar.buttonTime("Bonestorm", texture);
+            elseif (name == "Bonestorm") then
+                Blood.bonestorm = selected
             end
         end
     end
 
-    Blood.flash.deathAndDecay = Rotorbar.flash("Death and Decay", nil, 1, .7, .7, 1)
-    Blood.flash.deathStrike = Rotorbar.flash("Death Strike", nil, 1, 0.5, 0.5, 1)
-    Blood.flash.iceboundFortitude = Rotorbar.flash("Icebound Fortitude")
-    Blood.flash.vampiricBlood = Rotorbar.flash("Vampiric Blood")
-    Blood.flash.dancingRuneWeapon = Rotorbar.flash("Dancing Rune Weapon")
+    if (not Blood.loaded) then
+        Blood.flash.deathAndDecay = Rotorbar.flash("Death and Decay", 1, .7, .7, 1)
+        Blood.flash.deathStrike = Rotorbar.flash("Death Strike", 1, 0.5, 0.5, 1)
+        Blood.flash.iceboundFortitude = Rotorbar.flash("Icebound Fortitude")
+        Blood.flash.vampiricBlood = Rotorbar.flash("Vampiric Blood")
+        Blood.flash.dancingRuneWeapon = Rotorbar.flash("Dancing Rune Weapon")
 
-    Blood.icons.deathAndDecay = Rotorbar.buttonTime("Death and Decay")
-    Blood.icons.deathStrike = Rotorbar.buttonTime("Death Strike")
-    Blood.icons.heartStrike = Rotorbar.buttonTime("Heart Strike")
-    Blood.icons.marrowrend = Rotorbar.buttonTime("Marrowrend")
-    Blood.icons.consumption = Rotorbar.buttonTime("Consumption")
-    Blood.icons.bloodBoil = Rotorbar.buttonTime("Blood Boil")
+        Blood.icons.deathAndDecay = Rotorbar.buttonTime("Death and Decay")
+        Blood.icons.deathStrike = Rotorbar.buttonTime("Death Strike")
+        Blood.icons.heartStrike = Rotorbar.buttonTime("Heart Strike")
+        Blood.icons.marrowrend = Rotorbar.buttonTime("Marrowrend")
+        Blood.icons.consumption = Rotorbar.buttonTime("Consumption")
+        Blood.icons.bloodBoil = Rotorbar.buttonTime("Blood Boil")
 
-    Blood.cools.deathGrip = Rotorbar.cooldown("Death Grip")
-    Blood.cools.gorefiendsGrasp = Rotorbar.cooldown("Gorefiend's Grasp")
+        Blood.cools.deathGrip = Rotorbar.cooldown("Death Grip")
+        Blood.cools.gorefiendsGrasp = Rotorbar.cooldown("Gorefiend's Grasp")
+
+        Blood.icons.blooddrinker =  Rotorbar.buttonTime("Blooddrinker");
+        Blood.icons.bloodTap =  Rotorbar.buttonTime("Blood Tap");
+        Blood.icons.markOfBlood =  Rotorbar.buttonTime("Mark of Blood");
+        Blood.icons.tombstone =  Rotorbar.buttonTime("Tombstone");
+        Blood.icons.runeTap =  Rotorbar.buttonTime("Rune Tap");
+        Blood.icons.bonestorm =  Rotorbar.buttonTime("Bonestorm");
+
+        Blood.loaded = true
+    end
 
     return function()
 

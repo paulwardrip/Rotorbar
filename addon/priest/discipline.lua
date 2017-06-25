@@ -8,7 +8,7 @@ Discipline = {
 function Discipline.init()
     print ("Rotorbar Loaded Discipline Priest");
 
-    Rotorbar.classIcon(1, 1, .5, 0.75)
+    Rotorbar.classIcon(1, 1, 0, 1)
 
         return function()
             local showPos = 0
