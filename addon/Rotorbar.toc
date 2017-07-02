@@ -10,6 +10,7 @@ dk/unholy.lua
 priest/discipline.lua
 priest/holy.lua
 priest/shadow.lua
+druid/feral.lua
 events.lua
 classhandlers.lua
 main.lua

@@ -1,86 +1,54 @@
 Blood = {
-    blooddrinker = false,
-    bloodTap = false,
-    markOfBlood = false,
-    tombstone = false,
-    runeTap = false,
-    bonestorm = false,
-    bloodMirror = false,
+    class = function()
+        Rotorbar.classIcon(1, 0, 0, 1)
+    end,
 
-    icons = {},
-    color = {},
-    flash = {},
-    cools = {},
+    icons = function()
+        Blood.deathAndDecayCrimson = Rotorbar.flash("Death and Decay", 1, .25, .25, 1)
+        Blood.deathStrikeHeals = Rotorbar.flash("Death Strike", 1, 0.5, 0.5, 1)
+        Blood.deathStrikeIce = Rotorbar.flash("Death Strike", .75, 0, 1, 1)
+        Blood.blooddrinkerHeals =  Rotorbar.flash("Blooddrinker")
+        Blood.consumptionHeals = Rotorbar.flash("Consumption")
+        Blood.iceboundFortitude = Rotorbar.flash("Icebound Fortitude")
+        Blood.vampiricBlood = Rotorbar.flash("Vampiric Blood")
+        Blood.dancingRuneWeapon = Rotorbar.flash("Dancing Rune Weapon")
 
-    loaded = false
-}
+        Blood.deathAndDecay = Rotorbar.buttonTime("Death and Decay")
+        Blood.deathStrike = Rotorbar.buttonTime("Death Strike")
+        Blood.heartStrike = Rotorbar.buttonTime("Heart Strike")
+        Blood.marrowrend = Rotorbar.buttonTime("Marrowrend")
+        Blood.consumption = Rotorbar.buttonTime("Consumption")
+        Blood.bloodBoil = Rotorbar.buttonTime("Blood Boil")
 
-Blood.init = function()
-    Rotorbar.classIcon(1, 0, 0, 1)
+        Blood.blooddrinker =  Rotorbar.buttonTime("Blooddrinker")
+        Blood.bloodTap =  Rotorbar.buttonTime("Blood Tap")
+        Blood.bloodMirror =  Rotorbar.buttonTime("Blood Mirror")
+        Blood.markOfBlood =  Rotorbar.buttonTime("Mark of Blood")
+        Blood.tombstone =  Rotorbar.buttonTime("Tombstone")
+        Blood.runeTap =  Rotorbar.buttonTime("Rune Tap")
+        Blood.bonestorm =  Rotorbar.buttonTime("Bonestorm")
 
-    for tcol = 1,3 do
-        for ttier = 1,7 do
-            talentID, name, texture, selected, available, spellID, unknown, row, column, known = GetTalentInfo(ttier,tcol,GetActiveSpecGroup())
+        Blood.bloodPlague = Rotorbar.debuffIcon("Blood Plague", "55078")
 
-            if (name == "Blooddrinker") then
-                Blood.blooddrinker = selected
+        Rotorbar.cooldown("Death Grip")
+        Rotorbar.cooldown("Gorefiend's Grasp")
+        Rotorbar.cooldown("Wraith Walk")
+        Rotorbar.cooldown("Icebound Fortitude")
+        Rotorbar.cooldown("Vampiric Blood")
+        Rotorbar.cooldown("Dancing Rune Weapon")
+        Rotorbar.cooldown("Tombstone")
+        Rotorbar.cooldown("Blood Mirror")
+        Rotorbar.cooldown("Bonestorm")
+        Rotorbar.cooldown("Raise Ally")
 
-            elseif (name == "Blood Tap") then
-                Blood.bloodTap = selected
+    end,
 
-            elseif (name == "Mark of Blood") then
-                Blood.markOfBlood = selected
-
-            elseif (name == "Tombstone") then
-                Blood.tombstone = selected
-
-            elseif (name == "Rune Tap") then
-                Blood.runeTap = selected
-
-            elseif (name == "Bonestorm") then
-                Blood.bonestorm = selected
-            end
-        end
-    end
-
-    if (not Blood.loaded) then
-        Blood.flash.deathAndDecay = Rotorbar.flash("Death and Decay", 1, .7, .7, 1)
-        Blood.flash.deathStrike = Rotorbar.flash("Death Strike", 1, 0.5, 0.5, 1)
-        Blood.flash.iceboundFortitude = Rotorbar.flash("Icebound Fortitude")
-        Blood.flash.vampiricBlood = Rotorbar.flash("Vampiric Blood")
-        Blood.flash.dancingRuneWeapon = Rotorbar.flash("Dancing Rune Weapon")
-
-        Blood.icons.deathAndDecay = Rotorbar.buttonTime("Death and Decay")
-        Blood.icons.deathStrike = Rotorbar.buttonTime("Death Strike")
-        Blood.icons.heartStrike = Rotorbar.buttonTime("Heart Strike")
-        Blood.icons.marrowrend = Rotorbar.buttonTime("Marrowrend")
-        Blood.icons.consumption = Rotorbar.buttonTime("Consumption")
-        Blood.icons.bloodBoil = Rotorbar.buttonTime("Blood Boil")
-
-        Blood.cools.deathGrip = Rotorbar.cooldown("Death Grip")
-        Blood.cools.gorefiendsGrasp = Rotorbar.cooldown("Gorefiend's Grasp")
-
-        Blood.icons.blooddrinker =  Rotorbar.buttonTime("Blooddrinker");
-        Blood.icons.bloodTap =  Rotorbar.buttonTime("Blood Tap");
-        Blood.icons.markOfBlood =  Rotorbar.buttonTime("Mark of Blood");
-        Blood.icons.tombstone =  Rotorbar.buttonTime("Tombstone");
-        Blood.icons.runeTap =  Rotorbar.buttonTime("Rune Tap");
-        Blood.icons.bonestorm =  Rotorbar.buttonTime("Bonestorm");
-
-        Blood.loaded = true
-    end
-
-    return function()
-
-        local showPos = 0
-        local showIcons = {}
-
-        function showNext(icon)
-            showIcons[showPos] = icon
-            showPos = showPos + 1
-        end
+    rotation = function()
+        Rotorbar.showDebuff(Blood.bloodPlague)
 
         local showedDS = false
+        local showedBD = false
+        local showedCN = false
         local boneShield, boneLeft = Rotorbar.buffed("Bone Shield")
         local bloodPlague, bloodLeft = Rotorbar.debuffed("Blood Plague")
         local crimson = Rotorbar.buffed("Crimson Scourge")
@@ -89,117 +57,143 @@ Blood.init = function()
         local runicPercent = UnitPower("player", 6) / UnitPowerMax("player", 6)
         local runes = Rotorbar.runes()
 
-        -- Criticals
-        local icebound = Rotorbar.isUsableCooldown("Icebound Fortitude")
-        local vampire = Rotorbar.isUsableCooldown("Vampiric Blood")
-        if (healthpercent < .35) then
-            if (vampire and icebound and runicPercent > .5) then
-                showNext (Blood.flash.vampiricBlood)
-            elseif (icebound) then
-                showNext (Blood.flash.iceboundFortitude)
-            elseif (vampire) then
-                showNext (Blood.flash.vampiricBlood)
+        local iceboundActive = Rotorbar.buffed("Icebound Fortitude")
+
+        if (iceboundActive and Rotorbar.isTalent("Heart of Ice")) then
+
+            -- Death Strike Extends
+            if (Rotorbar.isUsableCooldown("Death Strike")) then
+                Rotorbar.showNext (Blood.deathStrikeIce)
             end
-        end
 
-        -- Dancing Rune Weapon
-        if (healthpercent < .45 and Rotorbar.isUsableCooldown("Dancing Rune Weapon")) then
-            showNext(Blood.flash.dancingRuneWeapon)
-        end
-
-        -- Death Strike Emergency
-        if (Rotorbar.isUsableCooldown("Death Strike") and healthpercent < .50) then
-            showNext (Blood.flash.deathStrike)
-            showedDS = true
-        end
-
-        -- Crimson Scourge Proc
-        if (crimson > 0) then
-            showNext (Blood.flash.deathAndDecay)
-        end
-
-        -- Blood Tap
-        if (Rotorbar.isUsableCooldown("Blood Tap", Blood.bloodTap) and runes < 2 and boneShield > 1) then
-            showNext (Blood.icons.bloodTap)
-        end
-
-        -- Blooddrinker
-        if (Rotorbar.isUsableCooldown("Blooddrinker") and healthpercent < .8) then
-            showNext (Blood.icons.blooddrinker)
-        end
-
-        -- Consumption
-        if (Rotorbar.isUsableCooldown("Consumption") and healthpercent < .85) then
-            showNext (Blood.icons.consumption)
-        end
-
-        -- Death Strike if it will heals 20% or more.
-        if (not showedDS and Rotorbar.isUsableCooldown("Death Strike") and healthpercent < .8 and runicPercent > .2) then
-            showNext (Blood.icons.deathStrike)
-            showedDS = true
-        end
-
-        -- Bonestorm
-        if (Rotorbar.isUsableCooldown("Bonestorm", Blood.bonestorm) and runicPercent > .8) then
-            showNext (Blood.icons.bonestorm)
-        end
-
-        -- Blood Mirror
-        if (Rotorbar.isUsableCooldown("Blood Mirror", Blood.bloodMirror) and Rotorbar.isBoss()) then
-            showNext (Blood.icons.bonestorm)
-        end
-
-        -- Mark of Blood
-        if (Rotorbar.isUsableCooldown("Mark of Blood") and Rotorbar.isBoss()) then
-            local stacks, left = Rotorbar.debuffed("Mark of Blood")
-            if (stacks == 0 or left < 2) then
-                showNext (Blood.icons.markOfBlood)
+            -- Marrowrend if Bone Shield is Needed
+            if (Rotorbar.isUsableCooldown("Marrowrend") and (boneShield < 9 or boneLeft < 5)) then
+                Rotorbar.showNext (Blood.marrowrend)
             end
-        end
 
-        -- Blood Boil
-        if (Rotorbar.isUsableCooldown("Blood Boil") and (bloodPlague == 0 or bloodLeft < 3)) then
-            showNext (Blood.icons.bloodBoil)
-        end
+            -- Heart Strike
+            if (Rotorbar.isUsableCooldown("Heart Strike")) then
+                Rotorbar.showNext (Blood.heartStrike)
+            end
 
-        -- Death and Decay
-        if (crimson == 0 and Rotorbar.isUsableCooldown("Death and Decay")) then
-            showNext (Blood.icons.deathAndDecay)
-        end
+        else
+            -- Criticals
+            local icebound = Rotorbar.isUsableCooldown("Icebound Fortitude")
+            local vampire = Rotorbar.isUsableCooldown("Vampiric Blood")
+            if (healthpercent < .5) then
+                if (vampire and icebound) then
+                    Rotorbar.RshowNext (Blood.vampiricBlood)
+                elseif (icebound) then
+                    Rotorbar.showNext (Blood.iceboundFortitude)
+                elseif (vampire) then
+                    Rotorbar.showNext (Blood.vampiricBlood)
+                end
+            end
 
-        -- Marrowrend if Bone Shield is Needed
-        if (Rotorbar.isUsableCooldown("Marrowrend") and (boneShield < 9 or boneLeft < 5)) then
-            showNext (Blood.icons.marrowrend)
-        end
+            -- Dancing Rune Weapon
+            local runeWeaponGo = Rotorbar.isUsableCooldown("Dancing Rune Weapon")
+            if (healthpercent < .5 and runeWeaponGo) then
+                Rotorbar.showNext(Blood.dancingRuneWeapon)
+            end
 
-        -- Heart Strike
-        if (Rotorbar.isUsableCooldown("Heart Strike")) then
-            showNext (Blood.icons.heartStrike)
-        end
+            -- Blooddrinker Heals
+            if (Rotorbar.isUsableCooldown("Blooddrinker") and healthpercent < .75) then
+                Rotorbar.showNext (Blood.blooddrinkerHeals)
+                showedBD = true
+            end
 
-        -- Death Strike if heals 10% or if completely runic capped.
-        if (not showedDS and Rotorbar.isUsableCooldown("Death Strike") and (healthpercent < .9 or runicPercent == 1)) then
-            showNext (Blood.icons.deathStrike)
-        end
+            -- Consumption Heals
+            if (Rotorbar.isUsableCooldown("Consumption") and healthpercent < .75) then
+                Rotorbar.showNext (Blood.consumptionHeals)
+            end
 
-        -- Tombstone
-        if (Rotorbar.isUsableCooldown("Tombstone") and boneShield > 4) then
-            showNext (Blood.icons.tombstone)
-        end
+            -- Death Strike Emergency
+            if (Rotorbar.isUsableCooldown("Death Strike") and healthpercent < .50) then
+                Rotorbar.showNext (Blood.deathStrikeHeals)
+                showedDS = true
+            end
 
-        -- Rune Tap
-        if (Rotorbar.isUsableCooldown("Rune Tap")) then
-            showNext (Blood.icons.runeTap)
-        end
+            -- Crimson Scourge Proc
+            if (crimson > 0) then
+                Rotorbar.showNext (Blood.deathAndDecayCrimson)
+            end
 
-        showNext(Blood.cools.deathGrip)
-        showNext(Blood.cools.gorefiendsGrasp)
+            -- Blood Tap
+            if (Rotorbar.isUsableCooldown("Blood Tap") and runes < 2 and boneShield > 1) then
+                Rotorbar.showNext (Blood.bloodTap)
+            end
 
-        Rotorbar.resetButtons()
-        Rotorbar.setIcons(showPos)
+            -- Death Strike if it will heals 25% or more.
+            if (not showedDS and Rotorbar.isUsableCooldown("Death Strike") and healthpercent < .75 and runicPercent > .22) then
+                Rotorbar.showNext (Blood.deathStrike)
+                showedDS = true
+            end
 
-        for sp = 0, (showPos - 1) do
-            Rotorbar.buttonActive(showIcons[sp])
+            -- Bonestorm
+            local bonestormGo, bonestormLeft = Rotorbar.isUsableCooldown("Bonestorm")
+            if (bonestormGo and runicPercent == 1) then
+                Rotorbar.showNext (Blood.bonestorm)
+            end
+
+            -- Blood Mirror
+            local mirrorGo, mirrorLeft = Rotorbar.isUsableCooldown("Blood Mirror")
+            if (mirrorGo and Rotorbar.isBoss()) then
+                Rotorbar.showNext (Blood.bloodMirror)
+            end
+
+            -- Mark of Blood
+            if (Rotorbar.isUsableCooldown("Mark of Blood") and Rotorbar.isBoss()) then
+                local stacks, left = Rotorbar.debuffed("Mark of Blood")
+                if (stacks == 0 or left < 2) then
+                    Rotorbar.showNext (Blood.markOfBlood)
+                end
+            end
+
+            -- Blood Boil
+            if (Rotorbar.isUsableCooldown("Blood Boil") and (bloodPlague == 0 or bloodLeft < 3)) then
+                Rotorbar.showNext (Blood.bloodBoil)
+            end
+
+            -- Death and Decay
+            if (crimson == 0 and Rotorbar.isUsableCooldown("Death and Decay")) then
+                Rotorbar.showNext (Blood.deathAndDecay)
+            end
+
+            -- Marrowrend if Bone Shield is Needed
+            if (Rotorbar.isUsableCooldown("Marrowrend") and (boneShield < 9 or boneLeft < 5)) then
+                Rotorbar.showNext (Blood.marrowrend)
+            end
+
+            -- Blooddrinker
+            if (not showedBD and Rotorbar.isUsableCooldown("Blooddrinker")) then
+                Rotorbar.showNext (Blood.blooddrinker)
+            end
+
+            -- Consumption
+            if (not showedCN and Rotorbar.isUsableCooldown("Consumption")) then
+                Rotorbar.showNext (Blood.consumption)
+            end
+
+            -- Heart Strike
+            if (Rotorbar.isUsableCooldown("Heart Strike")) then
+                Rotorbar.showNext (Blood.heartStrike)
+            end
+
+            -- Death Strike if heals 10% or if completely runic capped.
+            if (not showedDS and Rotorbar.isUsableCooldown("Death Strike") and (healthpercent < .9 or runicPercent == 1)) then
+                Rotorbar.showNext (Blood.deathStrike)
+            end
+
+            -- Tombstone
+            local tombstoneGo, tombstoneLeft = Rotorbar.isUsableCooldown("Tombstone")
+            if (tombstoneGo and boneShield > 4) then
+                Rotorbar.showNext (Blood.tombstone)
+            end
+
+            -- Rune Tap
+            if (Rotorbar.isUsableCooldown("Rune Tap")) then
+                Rotorbar.showNext (Blood.runeTap)
+            end
         end
     end
-end
+}

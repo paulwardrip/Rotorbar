@@ -1,33 +1,36 @@
 
 function loadClassHandler()
-    local currentSpec = GetSpecialization()
+    Rotorbar.specialization = GetSpecialization()
 
-    if (UnitClass("player") == "Death Knight") then
-        if (currentSpec == 1) then
-            handler = Blood.init()
-            handler()
+    if (Rotorbar.class == "Death Knight") then
+        if (Rotorbar.specialization == 1) then
+            Rotorbar.loadSpec(Blood)
 
-        elseif (currentSpec == 2) then
-            handler = Frost.init()
-            handler()
+        elseif (Rotorbar.specialization == 2) then
+            Rotorbar.loadSpec(Frost)
 
-        elseif (currentSpec == 3) then
-            handler = Unholy.init()
-            handler()
+        elseif (Rotorbar.specialization == 3) then
+            Rotorbar.loadSpec(Unholy)
         end
 
-    elseif (UnitClass("player") == "Priest") then
-        if (currentSpec == 1) then
-            handler = Discipline.init()
-            handler()
+    elseif (Rotorbar.class == "Priest") then
+        if (Rotorbar.specialization == 1) then
+            Rotorbar.loadSpec(Discipline)
 
-        elseif (currentSpec == 2) then
-            handler = HolyPriest.init()
-            handler()
+        elseif (Rotorbar.specialization == 2) then
+            Rotorbar.loadSpec(HolyPriest)
 
-        elseif (currentSpec == 3) then
-            handler = Shadow.init()
-            handler()
+        elseif (Rotorbar.specialization == 3) then
+            Rotorbar.loadSpec(Shadow)
+        end
+
+    elseif (Rotorbar.class == "Druid") then
+        if (Rotorbar.specialization == 1) then
+        elseif (Rotorbar.specialization == 2) then
+            Rotorbar.loadSpec(Feral)
+
+        elseif (Rotorbar.specialization == 3) then
+        elseif (Rotorbar.specialization == 4) then
         end
     end
 end

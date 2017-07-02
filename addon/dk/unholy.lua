@@ -1,156 +1,102 @@
 Unholy = {
-    epidemic = false,
-    blightedRuneWeapon = false,
-    clawingShadows = false,
-    corpseShield = false,
-    darkArbiter = false,
-    defile = false,
-    soulReaper = false,
-    necrosis = false,
+    class = function()
+        Rotorbar.classIcon(0, 1, 0, 1)
+    end,
 
-    icons = {},
-    flash = {},
-    cools = {},
-    color = {},
+    icons = function()
+        Unholy.outbreak =  Rotorbar.buttonTime("Outbreak")
+        Unholy.deathCoil =  Rotorbar.buttonTime("Death Coil")
+        Unholy.scourgeStrike =  Rotorbar.buttonTime("Scourge Strike")
+        Unholy.festeringStrike =  Rotorbar.buttonTime("Festering Strike")
+        Unholy.armyoftheDead =  Rotorbar.buttonTime("Army of the Dead")
+        Unholy.darkTransformation =  Rotorbar.buttonTime("Dark Transformation")
+        Unholy.summonGargoyle =  Rotorbar.buttonTime("Summon Gargoyle")
+        Unholy.apocalypse =  Rotorbar.buttonTime("Apocalypse")
+        Unholy.deathAndDecay = Rotorbar.buttonTime("Death and Decay")
+        Unholy.epidemic =  Rotorbar.buttonTime("Epidemic")
+        Unholy.blightedRuneWeapon =  Rotorbar.buttonTime("Blighted Rune Weapon")
+        --Unholy.clawingShadows = Rotorbar.buttonTime("Clawing Shadows")
+        --Unholy.necrosisClawing = Rotorbar.flash("Clawing Shadows", 1, 0, 0.8, 1)
+        Unholy.necrosisScourge = Rotorbar.flash("Scourge Strike", 1, 0, 0.8, 1)
+        Unholy.corpseShield = Rotorbar.flash("Corpse Shield");
+        --Unholy.darkArbiter =  Rotorbar.buttonTime("Dark Arbiter");
+        Unholy.defile =  Rotorbar.buttonTime("Defile");
+        Unholy.soulReaper =  Rotorbar.buttonTime("Soul Reaper");
 
-    loaded = false
-}
+        Unholy.arbiterCoil =  Rotorbar.flash("Death Coil", 0.90, 0, 0.70, 1)
+        --Unholy.arbiterClawing =  Rotorbar.buttonTime("Clawing Shadows", 1, 0.25, 0.75, 1)
+        Unholy.arbiterScourge =  Rotorbar.buttonTime("Scourge Strike", 1, 0.25, 0.75, 1)
+        Unholy.arbiterFestering =  Rotorbar.buttonTime("Festering Strike", 0.85, 0.5, 0.95, 1)
 
-function Unholy.init()
-    Rotorbar.classIcon(0, 1, 0, 1)
+        Unholy.suddenDoom =  Rotorbar.flash("Death Coil", 1, .75, 0, 1)
+        Unholy.raiseDead =  Rotorbar.flash("Raise Dead")
+        Unholy.deathStrike =  Rotorbar.flash("Death Strike", 1, 0.5, 0.5, 1)
+        Unholy.iceboundFortitude =  Rotorbar.flash("Icebound Fortitude")
 
-    for tcol = 1,3 do
-        for ttier = 1,7 do
-            local talentID, name, texture, selected, available, spellID, unknown, row, column, known = GetTalentInfo(ttier,tcol,GetActiveSpecGroup())
+        Unholy.virulentPlague = Rotorbar.debuffIcon("Virulent Plague", "191587")
+        Unholy.festeringWound = Rotorbar.debuffIcon("Festering Wound", "194310")
 
-            if (name == "Bursting Sores" and selected) then
-                Unholy.burstingSores = true
-            end
-            if (name == "Epidemic" and selected) then
-                Unholy.epidemic = true
-            end
-            if (name == "Blighted Rune Weapon" and selected) then
-                Unholy.blightedRuneWeapon = true
-            end
-            if (name == "Clawing Shadows" and selected) then
-                Unholy.clawingShadows = true
-            end
-            if (name == "Corpse Shield" and selected) then
-                Unholy.corpseShield = true
-            end
-            if (name == "Necrosis" and selected) then
-                Unholy.necrosis = true
-            end
-            if (name == "Dark Arbiter" and selected) then
-                Unholy.darkArbiter = true
-            end
-            if (name == "Defile" and selected) then
-                Unholy.defile = true
-            end
-            if (name == "Soul Reaper" and selected) then
-                Unholy.soulReaper = true
-            end
-        end
-    end
+        Rotorbar.cooldown("Dark Transformation")
+        Rotorbar.cooldown("Apocalypse")
+        Rotorbar.cooldown("Blighted Rune Weapon")
+        Rotorbar.cooldown("Army of the Dead")
+        Rotorbar.cooldown("Summon Gargoyle", "Dark Arbiter")
+    end,
 
-    if (not Unholy.loaded) then
-        Unholy.icons.outbreak =  Rotorbar.buttonTime("Outbreak")
-        Unholy.icons.deathCoil =  Rotorbar.buttonTime("Death Coil")
-        Unholy.icons.scourgeStrike =  Rotorbar.buttonTime("Scourge Strike")
-        Unholy.icons.festeringStrike =  Rotorbar.buttonTime("Festering Strike")
-        Unholy.icons.armyoftheDead =  Rotorbar.buttonTime("Army of the Dead")
-        Unholy.icons.darkTransformation =  Rotorbar.buttonTime("Dark Transformation")
-        Unholy.icons.summonGargoyle =  Rotorbar.buttonTime("Summon Gargoyle")
-        Unholy.icons.apocalypse =  Rotorbar.buttonTime("Apocalypse")
-        Unholy.icons.deathAndDecay = Rotorbar.buttonTime("Death and Decay")
-
-        Unholy.icons.epidemic =  Rotorbar.buttonTime("Epidemic");
-        Unholy.icons.blightedRuneWeapon =  Rotorbar.buttonTime("Blighted Rune Weapon");
-        Unholy.icons.clawingShadows = Rotorbar.buttonTime("Clawing Shadows");
-        Unholy.flash.necrosisClawing = Rotorbar.flash("Clawing Shadows", 1, 0, 0.8, 1);
-        Unholy.flash.necrosisScourge = Rotorbar.flash("Scourge Strike", 1, 0, 0.8, 1);
-        Unholy.flash.corpseShield = Rotorbar.flash("Corpse Shield");
-        Unholy.icons.darkArbiter =  Rotorbar.buttonTime("Dark Arbiter");
-        Unholy.icons.defile =  Rotorbar.buttonTime("Defile");
-        Unholy.icons.soulReaper =  Rotorbar.buttonTime("Soul Reaper");
-
-        Unholy.flash.arbiterCoil =  Rotorbar.flash("Death Coil", 0.90, 0, 0.70, 1)
-        Unholy.color.arbiterClawing =  Rotorbar.buttonTime("Clawing Shadows", 1, 0.25, 0.75, 1)
-        Unholy.color.arbiterFestering =  Rotorbar.buttonTime("Festering Strike", 0.85, 0.5, 0.95, 1)
-
-        Unholy.flash.suddenDoom =  Rotorbar.flash("Death Coil", 1, .75, 0, 1)
-        Unholy.flash.raiseDead =  Rotorbar.flash("Raise Dead")
-        Unholy.flash.deathStrike =  Rotorbar.flash("Death Strike", 1, 0.5, 0.5, 1)
-        Unholy.flash.iceboundFortitude =  Rotorbar.flash("Icebound Fortitude")
-
-        Unholy.cools.armyoftheDead = Rotorbar.cooldown("Army of the Dead")
-        Unholy.cools.darkTransformation =  Rotorbar.cooldown("Dark Transformation")
-        Unholy.cools.summonGargoyle =  Rotorbar.cooldown("Summon Gargoyle")
-        Unholy.cools.darkArbiter =  Rotorbar.cooldown("Dark Arbiter")
-        Unholy.cools.apocalypse =  Rotorbar.cooldown("Apocalypse")
-        Unholy.loaded = true
-    end
-
-    return function ()
-        local function activeArbiter()
+    darkArbiterActive = function()
+        if Rotorbar.isTalent("Dark Arbiter") then
             local haveTotem, name, startTime, duration, icon = GetTotemInfo(3)
             return (haveTotem and name == "Val'kyr Battlemaiden")
+        else
+            return false
         end
+    end,
+
+    rotation = function()
+        Rotorbar.showDebuff(Unholy.virulentPlague)
+        Rotorbar.showDebuff(Unholy.festeringWound)
 
         local healthpercent = UnitHealth("player") / UnitHealthMax("player")
         local runicPercent = UnitPower("player", 6) / UnitPowerMax("player", 6)
         local runes = Rotorbar.runes()
 
-
-        local arbiter = Unholy.darkArbiter and activeArbiter()
+        local arbiter = Unholy.darkArbiterActive()
         local virulent, virulentLeft = Rotorbar.debuffed("Virulent Plague")
         local wounds = Rotorbar.debuffed("Festering Wound")
 
         local necro = Rotorbar.buffed("Necrosis")
 
-        local showPos = 0
-        local showIcons = {}
-
-        local function showNext(icon)
-            showIcons[showPos] = icon
-            showPos = showPos + 1
-        end
 
         -- When health is low, suggest defensive spells.
 
         if (Rotorbar.isUsableCooldown("Corpse Shield") and healthpercent < .25) then
-           showNext(Unholy.flash.corpseShield)
+            Rotorbar.showNext(Unholy.corpseShield)
         end
 
         if (Rotorbar.isUsableCooldown("Icebound Fortitude") and healthpercent < .35) then
-           showNext (Unholy.flash.iceboundFortitude)
+            Rotorbar.showNext (Unholy.iceboundFortitude)
         end
 
         if (Rotorbar.isUsableCooldown("Death Strike") and healthpercent < .50) then
-           showNext (Unholy.flash.deathStrike)
+            Rotorbar.showNext (Unholy.deathStrike)
         end
 
+        local scourgeGo = Rotorbar.isUsableCooldown("Scourge Strike")
 
 
         -- Spells to suggest during Dark Arbiter.
 
         if (arbiter) then
             if (IsUsableSpell("Death Coil")) then
-                showNext (Unholy.flash.arbiterCoil)
+                Rotorbar.showNext (Unholy.arbiterCoil)
             end
 
-            if (IsUsableSpell("Clawing Shadows") or IsUsableSpell("Scourge Strike")) then
-                if (wounds > 0) then
-                    if (IsUsableSpell("Clawing Shadows")) then
-                        showNext(Unholy.color.arbiterClawing)
-                    else
-                        showNext(Unholy.icons.scourgeStrike)
-                    end
-                end
+            if (IsUsableSpell("Scourge Strike") and wounds > 0) then
+                Rotorbar.showNext(Unholy.arbiterScourge)
             end
 
             if (IsUsableSpell("Festering Strike")) then
-                showNext(Unholy.color.arbiterFestering)
+                Rotorbar.showNext(Unholy.arbiterFestering)
             end
 
         else
@@ -159,89 +105,81 @@ function Unholy.init()
 
             local suddenDoom = Rotorbar.buffed("Sudden Doom")
             if (suddenDoom > 0) then
-                showNext (Unholy.flash.suddenDoom)
+                Rotorbar.showNext (Unholy.suddenDoom)
             end
 
             local armyGo = Rotorbar.isUsableCooldown("Army of the Dead")
             if (armyGo and Rotorbar.isBoss()) then
-                 showNext (Unholy.icons.armyoftheDead)
+                Rotorbar.showNext (Unholy.armyoftheDead)
             end
 
-            local arbiterGo, arbiterLeft = Rotorbar.isUsableCooldown("Dark Arbiter", Unholy.darkArbiter)
-            local gargoyleGo = false
-
-            if (Unholy.darkArbiter) then
-                if (arbiterGo and Rotorbar.isBoss() and runicPercent == 1) then
-                    showNext (Unholy.icons.darkArbiter)
-                end
-            else
-                gargoyleGo = Rotorbar.isUsableCooldown("Summon Gargoyle")
-                if (gargoyleGo and Rotorbar.isBoss()) then
-                    showNext (Unholy.icons.summonGargoyle)
-                end
+            local arbiterKnown = Rotorbar.isTalent("Dark Arbiter")
+            local gargoyleGo, _, gargoyleLeft = Rotorbar.isUsableCooldown("Summon Gargoyle")
+            local arbiterSoon = Rotorbar.isTalent("Dark Arbiter") and Rotorbar.isBoss() and (gargoyleGo or gargoyleLeft < 15)
+            if (gargoyleGo and Rotorbar.isBoss() and (not arbiterKnown or runicPercent == 1)) then
+                Rotorbar.showNext (Unholy.summonGargoyle)
             end
 
             local xformGo = Rotorbar.isUsableCooldown("Dark Transformation")
             if (UnitExists("pet")) then
                  if (xformGo) then
-                    showNext (Unholy.icons.darkTransformation)
+                     Rotorbar.showNext (Unholy.darkTransformation)
                 end
              else
-                showNext (Unholy.flash.raiseDead)
-             end
+                Rotorbar.showNext (Unholy.raiseDead)
+            end
 
-            if (Rotorbar.isUsableCooldown("Defile", Unholy.defile)) then
-               showNext (Unholy.icons.defile)
+            local defileGo, defileKnown = Rotorbar.isUsableCooldown("Defile")
+            if (defileGo) then
+                Rotorbar.showNext (Unholy.defile)
             end
 
             if (IsUsableSpell("Outbreak")) then
                 local virulent = Rotorbar.targetsNotDebuffed("Virulent Plague")
                 if (virulent > 0) then
-                    showNext(Unholy.icons.outbreak)
+                    Rotorbar.showNext(Unholy.outbreak)
                 end
             end
 
-            if (Rotorbar.isUsableCooldown("Blighted Rune Weapon", Unholy.blightedRuneWeapon)) then
-                showNext (Unholy.icons.blightedRuneWeapon)
+            if (Rotorbar.isUsableCooldown("Blighted Rune Weapon")) then
+                Rotorbar.showNext (Unholy.blightedRuneWeapon)
             end
 
-            if (Rotorbar.isUsableCooldown("Soul Reaper", Unholy.soulReaper) and runes >= 3 and wounds >= 3) then
-                showNext (Unholy.icons.soulReaper)
+            if (Rotorbar.isUsableCooldown("Soul Reaper") and runes >= 3 and wounds >= 3) then
+                Rotorbar.showNext (Unholy.soulReaper)
             end
 
-            local apocalypseGo, apocalypseLeft = Rotorbar.isUsableCooldown("Apocalypse")
-            local apocalypseReady = ((apocalypseGo or apocalypseLeft < 5) and Rotorbar.isBoss())
+            local apocalypseGo, _, apocalypseLeft = Rotorbar.isUsableCooldown("Apocalypse")
+            local apocalypseSoon = ((apocalypseGo or apocalypseLeft < 5) and Rotorbar.isBoss())
 
             if (apocalypseGo and wounds >= 6) then
-                showNext(Unholy.icons.apocalypse)
+                Rotorbar.showNext(Unholy.apocalypse)
             end
 
             -- For Necrosis prioritize the Death Coils
             local showedNecrosis = false
-            if (Unholy.necrosis) then
+            if (Rotorbar.isTalent("Necrosis")) then
+                local apocalypseStealing = (apocalypseSoon and wounds < 8)
 
-                if (necro == 0 and suddenDoom == 0 and IsUsableSpell("Death Coil") and wounds >= 1 and (not apocalypseReady or wounds >= 8)
-                    and (IsUsableSpell("Clawing Shadows") or IsUsableSpell("Scourge Strike")) and
-                    (not Unholy.darkArbiter or ((not arbiterGo and arbiterLeft > 15) or not Rotorbar.isBoss()))) then
-                    showNext (Unholy.icons.deathCoil)
+                if (necro == 0 and suddenDoom == 0 and IsUsableSpell("Death Coil") and wounds >= 1 and runes >= 1
+                    and not apocalypseStealing and not arbiterSoon) then
+                    Rotorbar.showNext (Unholy.deathCoil)
                     showedNecrosis = true
                 end
             end
 
             -- Death and Decay whenever cleave is possible
-            if (not Unholy.defile) then
-                if ((Unholy.clawingShadows and Rotorbar.targetsInRange("Clawing Shadows") >= 3) or Rotorbar.targetsInRange("Scourge Strike") >= 3) then
-                    if (Rotorbar.buffed("Death and Decay") == 0 and Rotorbar.isUsableCooldown("Death and Decay")) then
-                        showNext(Unholy.icons.deathAndDecay)
-                    end
+            if (not defileKnown) then
+                if (Rotorbar.targets() >= 3 and Rotorbar.buffed("Death and Decay") == 0 and Rotorbar.isUsableCooldown("Death and Decay")) then
+                    Rotorbar.showNext(Unholy.deathAndDecay)
                 end
             end
 
-            if (IsUsableSpell("Clawing Shadows") or IsUsableSpell("Scourge Strike")) then
+            if (IsUsableSpell("Scourge Strike")) then
                 local aoeCheck
 
                 -- Clawing Shadows has range like a spell, Scourge Strike is melee
-                if (Unholy.clawingShadows) then
+                if (Rotorbar.isTalent("Clawing Shadows")) then
                     aoeCheck = Rotorbar.targetsInRange("Clawing Shadows")
                 else
                     aoeCheck = Rotorbar.targetsInRange("Scourge Strike")
@@ -251,17 +189,9 @@ function Unholy.init()
                 if ((not apocalypseReady and wounds >= 1) or wounds >= 8) then
 
                     if (necro > 0) then
-                        if (Unholy.clawingShadows) then
-                            showNext(Unholy.flash.necrosisClawing)
-                        else
-                            showNext(Unholy.flash.necrosisScourge)
-                        end
+                        Rotorbar.showNext(Unholy.necrosisScourge)
                     else
-                        if (Unholy.clawingShadows) then
-                            showNext(Unholy.icons.clawingShadows)
-                        else
-                            showNext(Unholy.icons.scourgeStrike)
-                        end
+                        Rotorbar.showNext(Unholy.scourgeStrike)
                     end
                 end
             end
@@ -270,73 +200,30 @@ function Unholy.init()
             -- 2 targets at 40% mastery: ~450%
             -- 3 targets: ~765%
             -- 4 targets: ~1160%
-            if (Rotorbar.isUsableCooldown("Epidemic", Unholy.epidemic)) then
+            if (Rotorbar.isUsableCooldown("Epidemic")) then
                 local withPlague = Rotorbar.targetsDebuffed("Virulent Plague")
                 local withSores = Rotorbar.targetsDebuffed("Festering Wound")
                 local necrosisReady = Rotorbar.buffed("Necrosis")
                 if (withPlague >= 3 and necrosisReady == 0) then
-                    if (Unholy.burstingSores and withSores == 0 and runes <= 1) then
-                        showNext(Unholy.icons.epidemic)
+                    if (Rotorbar.isTalent("Bursting Sores") and withSores == 0 and runes <= 1) then
+                        Rotorbar.showNext(Unholy.epidemic)
                     else
-                        showNext(Unholy.icons.epidemic)
+                        Rotorbar.showNext(Unholy.epidemic)
                     end
                 end
             end
 
             -- Festering Strike: Make more sores
             if (IsUsableSpell("Festering Strike")) then
-                showNext(Unholy.icons.festeringStrike)
+                Rotorbar.showNext(Unholy.festeringStrike)
             end
 
             -- Death Coil Filler
             if (suddenDoom == 0 and showedNecrosis == false and IsUsableSpell("Death Coil")) then
-                if (not Unholy.darkArbiter or (not arbiterGo and arbiterLeft > 15)) then
-                    showNext (Unholy.icons.deathCoil)
+                if (not arbiterSoon) then
+                    Rotorbar.showNext (Unholy.deathCoil)
                 end
             end
-
-            -- Trinket Ready Icons
-            local t1useable, t1ready, t1icon = Rotorbar.equipmentIcon(13)
-            local t2useable, t2ready, t2icon = Rotorbar.equipmentIcon(14)
-
-            if (t1useable and t1ready) then showNext(t1icon) end
-            if (t2useable and t2ready) then showNext(t2icon) end
-
-
-            -- Show cooldowns
-            if (not xformGo) then
-                showNext(Unholy.cools.darkTransformation)
-            end
-
-            if (not apocalypseGo) then
-                showNext(Unholy.cools.apocalypse)
-            end
-
-            if (not armyGo and Rotorbar.isBoss()) then
-                showNext(Unholy.cools.armyoftheDead)
-            end
-
-            if (Unholy.darkArbiter) then
-                if (not arbiterGo and Rotorbar.isBoss()) then
-                    showNext(Unholy.cools.darkArbiter)
-                end
-            else
-                if (not gargoyleGo and Rotorbar.isBoss()) then
-                    showNext(Unholy.cools.summonGargoyle)
-                end
-            end
-
-            -- Trinket Cooldown Icons
-            if (t1useable and not t1ready) then showNext(t1icon) end
-            if (t2useable and not t2ready) then showNext(t2icon) end
-
-        end
-
-        Rotorbar.resetButtons()
-        Rotorbar.setIcons(showPos)
-
-        for sp = 0, (showPos - 1) do
-            Rotorbar.buttonActive(showIcons[sp])
         end
     end
-end
+}
