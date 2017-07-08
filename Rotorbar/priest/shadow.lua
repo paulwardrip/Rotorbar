@@ -1,4 +1,6 @@
 Shadow = {
+    name = "Shadow",
+
     class = function()
         Rotorbar.classIcon(.75, 0, .75, 1)
     end,
@@ -23,21 +25,20 @@ Shadow = {
 
         Shadow.shadowform = Rotorbar.flash("Shadowform")
         Shadow.voidEruption = Rotorbar.flash("Void Eruption")
-        Shadow.shadowyInsight = Rotorbar.flash("Mind Blast", nil, .75, .5, 1, 1)
+        Shadow.shadowyInsight = Rotorbar.flash("Mind Blast", "Shadowy Insight").color(.75, .5, 1, 1)
 
-        Shadow.shadowWordPainDebuff = Rotorbar.debuffIcon("Shadow Word: Pain")
-        Shadow.vampiricTouchDebuff = Rotorbar.debuffIcon("Vampiric Touch")
+        Rotorbar.debuffIcon("Shadow Word: Pain")
+        Rotorbar.debuffIcon("Vampiric Touch")
 
-        Rotorbar.cooldown("Shadowfiend")
+        Rotorbar.cooldown("Mind Blast")
+        Rotorbar.cooldown("Shadowfiend").ifNotTalent("Mindbender")
+        Rotorbar.cooldown("Mindbender")
         Rotorbar.cooldown("Power Infusion")
         Rotorbar.cooldown("Shadow Crash")
         Rotorbar.cooldown("Surrender to Madness")
     end,
 
     rotation = function()
-        Rotorbar.showDebuff(Shadow.shadowWordPainDebuff)
-        Rotorbar.showDebuff(Shadow.vampiricTouchDebuff)
-
         local targetHealthPercent = UnitHealth("target")  / UnitHealthMax("target")
         local showedMindBlast = false
         local showedTouch = false

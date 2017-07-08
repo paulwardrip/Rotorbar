@@ -1,4 +1,6 @@
 HolyPriest = {
+    name = "Holy",
+
     class = function()
         Rotorbar.classIcon()
     end,

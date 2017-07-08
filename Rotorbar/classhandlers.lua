@@ -26,11 +26,16 @@ function loadClassHandler()
 
     elseif (Rotorbar.class == "Druid") then
         if (Rotorbar.specialization == 1) then
+            Rotorbar.loadSpec(Balance)
+
         elseif (Rotorbar.specialization == 2) then
             Rotorbar.loadSpec(Feral)
 
         elseif (Rotorbar.specialization == 3) then
+            Rotorbar.loadSpec(Guardian)
+
         elseif (Rotorbar.specialization == 4) then
+            Rotorbar.loadSpec(RestoDruid)
         end
     end
 end

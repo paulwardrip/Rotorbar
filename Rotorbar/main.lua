@@ -4,13 +4,15 @@ local showIcons = {}
 local debuffIcons = {}
 local coolIcons = {}
 
+RotorbarBossAbilities = {}
+
 Rotorbar = {
     class = UnitClass("player"),
     specialization = -1,
     equipment = {},
-
     _handler = nil,
     _mobsInCombat = {},
+    _guidtounit = {},
     _talents = {},
     _global = {
         start = 0,
@@ -49,6 +51,7 @@ function Rotorbar.currentSpec(spec)
 end
 
 function Rotorbar.loadSpec(spec)
+    print (spec ~= nil)
     Rotorbar.currentSpec(spec)
     Rotorbar.updateTalents()
 
@@ -58,10 +61,15 @@ function Rotorbar.loadSpec(spec)
             spec.rotation = function() end
             spec.cooldownsOnly = true
         else
-            spec.always = false
+            if (spec.alwaysShowCooldowns ~= nil) then
+                spec.always = spec.alwaysShowCooldowns
+            else
+                spec.always = false
+            end
             spec.cooldownsOnly = false
         end
 
+        spec.debuffIcons = {}
         spec.cooldowns = {}
         spec.icons()
         spec.loaded = true
@@ -127,7 +135,7 @@ function Rotorbar.targetsInRange(spell)
     local t = 0
 
     if (tablelength(Rotorbar._mobsInCombat) == 0) then
-        if (IsSpellInRange(spell, "target")) then
+        if (IsSpellInRange(spell, "target") and not UnitIsDead("target") and UnitCanAttack("player","target")) then
             return 1
         else
             return 0
@@ -161,7 +169,7 @@ function Rotorbar.targetsNotDebuffed(debuff)
     local t = 0
 
     if (tablelength(Rotorbar._mobsInCombat) == 0) then
-        if (Rotorbar.debuffed(debuff, "target") == 0) then
+        if (Rotorbar.debuffed(debuff, "target") == 0 and not UnitIsDead("target") and UnitCanAttack("player","target")) then
             return 1
         else
             return 0
@@ -191,20 +199,20 @@ function Rotorbar.isUsableCooldown(spell)
             local start, duration = GetSpellCooldown(spell)
             local gstart, gduration = Rotorbar.globalCooldown()
             if (start == 0) then
-                return true, true, 0
+                return true, true, 0, GetSpellCount(spell)
             else
                 local cdleft = (start+duration)-GetTime()
                 if (cdleft <= (gstart+gduration)-GetTime()) then
-                    return true, true, 0
+                    return true, true, 0, GetSpellCount(spell)
                 else
-                    return false, true, cdleft
+                    return false, true, cdleft, 0
                 end
             end
         else
-            return false, true, -1
+            return false, true, -1, -1
         end
     else
-        return false, false, -1
+        return false, false, -1, -1
     end
 end
 
@@ -225,11 +233,104 @@ function Rotorbar.isCasting(spell)
     return spell == name, start, duration
 end
 
+function Rotorbar.runes()
+    local count = 0
+    for i = 1, 6 do
+        if (GetRuneCount(i) ~= nil) then
+            count = count + GetRuneCount(i)
+        end
+    end
+    return count
+end
+
+function Rotorbar.incomingIcon()
+    frame.incoming = CreateFrame("Frame", nil, frame)
+    frame.incoming:SetSize((ICON_SIZE * 2)+(BORDER_SIZE * 2),ICON_SIZE+(BORDER_SIZE * 2))
+    frameback(frame.incoming)
+
+    frame.incoming.color={}
+    frame.incoming.label={}
+
+    function setup(x,f,i)
+        frame.incoming.color[x] = frame.incoming:CreateTexture("ARTWORK")
+        frame.incoming.color[x]:SetTexture("Interface\\ICONS\\Ability_Defend")
+        frame.incoming.color[x]:SetSize(i,i)
+        frame.incoming.color[x]:SetPoint("CENTER", frame.incoming)
+        frame.incoming.color[x]:SetDesaturated(true)
+        frame.incoming.color[x]:SetVertexColor(1,1,1,.5)
+
+        frame.incoming.label[x] = frame.incoming:CreateFontString()
+        frame.incoming.label[x]:SetPoint("CENTER", frame.incoming)
+        frame.incoming.label[x]:SetSize(ICON_SIZE, ICON_SIZE)
+        frame.incoming.label[x]:SetFont("Fonts\\ARIALN.TTF", f, "OUTLINE")
+    end
+
+    setup(1, 15, ICON_SIZE)
+    setup(2, 12, ICON_SIZE - 4)
+
+    frame.incoming.label[1]:SetPoint("LEFT", frame.incoming, BORDER_SIZE, 0)
+    frame.incoming.label[2]:SetPoint("LEFT", frame.incoming, BORDER_SIZE + ICON_SIZE, 0)
+    frame.incoming.color[1]:SetPoint("LEFT", frame.incoming, BORDER_SIZE, 0)
+    frame.incoming.color[2]:SetPoint("LEFT", frame.incoming, BORDER_SIZE + ICON_SIZE + 6, 2)
+
+    function frame.incoming.draw(inco)
+        if (inco == nil) then
+            frame.incoming.label[1]:SetText("")
+            frame.incoming.color[1]:SetVertexColor(1,1,1,.5)
+            frame.incoming.label[2]:SetText("")
+            frame.incoming.color[2]:SetVertexColor(1,1,1,.5)
+
+        else
+            local x = 1
+            if (not inco.target) then
+                x = 2
+            end
+
+            if (inco.school == 1) then
+                frame.incoming.label[x]:SetText("Ph")
+                frame.incoming.color[x]:SetVertexColor(.75,.75,.75,1)
+
+            elseif (inco.school == 2) then
+                frame.incoming.label[x]:SetText("Ho")
+                frame.incoming.color[x]:SetVertexColor(1.00, 0.90, 0.50, 1)
+
+            elseif (inco.school == 4) then
+                frame.incoming.label[x]:SetText("Fi")
+                frame.incoming.color[x]:SetVertexColor(1.00, 0.50, 0.00, 1)
+
+            elseif (inco.school == 8) then
+                frame.incoming.label[x]:SetText("Na")
+                frame.incoming.color[x]:SetVertexColor (0.30, 1.00, 0.30, 1)
+
+            elseif (inco.school == 16) then
+                frame.incoming.label[x]:SetText("Fr")
+                frame.incoming.color[x]:SetVertexColor (0.50, 1.00, 1.00, 1)
+
+            elseif (inco.school == 32) then
+                frame.incoming.label[x]:SetText("Sh")
+                frame.incoming.color[x]:SetVertexColor (0.50, 0.50, 1.00, 1)
+
+            elseif (inco.school == 64) then
+                frame.incoming.label[x]:SetText("Ar")
+                frame.incoming.color[x]:SetVertexColor (1.00, 0.50, 1.00, 1)
+
+            else
+                frame.incoming.label[x]:SetText("**")
+                frame.incoming.color[x]:SetVertexColor (1.0, 1.0, 1.0, 1)
+            end
+
+            if (inco ~= nil and inco.cast) then
+                UIFrameFlash(frame.incoming.color[x], .25, .25, 1.25, true, 0, 0)
+            end
+        end
+
+    end
+end
+
 function Rotorbar.classIcon(r, g, b, a)
     if (not gcdmade) then
         frame.gcd = CreateFrame("Frame", nil, frame)
-        frame.gcd:SetSize(36,36)
-        frame.gcd:SetPoint("Left", frame, 10, 0)
+        frame.gcd:SetSize(ICON_SIZE,ICON_SIZE)
 
         frame.icon = frame.gcd:CreateTexture(nil,"CENTER")
         frame.icon:SetAllPoints()
@@ -271,20 +372,11 @@ function Rotorbar.classIcon(r, g, b, a)
     end
 
     Rotorbar.gcd = frame.gcd
+    frame.gcd.ident = Rotorbar.currentSpec().name .. "-GCD"
 end
 
-function Rotorbar.runes()
-    local count = 0
-    for i = 1, 6 do
-        if (GetRuneCount(i) ~= nil) then
-            count = count + GetRuneCount(i)
-        end
-    end
-    return count
-end
-
-function Rotorbar.flash(name,r,g,b,a)
-    local f = Rotorbar.buttonTime(name,r,g,b,a)
+function Rotorbar.flash(name, proc)
+    local f = Rotorbar.buttonTime(name, proc)
     UIFrameFlash(f, .75, .25, 100000, true, .5, 0)
 
     f:SetPoint("Left", UIParent, -50, -50)
@@ -337,8 +429,8 @@ function Rotorbar.linkedCooldown(name, link)
 
 end
 
-function Rotorbar.cooldown(name, talent)
-    local f = Rotorbar._basebutton(name)
+function Rotorbar.cooldown(name)
+    local f = Rotorbar._basebutton(name, "Cooldown")
 
     f.type = "cooldown"
 
@@ -348,10 +440,23 @@ function Rotorbar.cooldown(name, talent)
     f.always = Rotorbar.currentSpec().always
     f.vis = (Rotorbar.isTalent(name) and (f.always == true))
 
+
+    function f.ifNotTalent(t)
+        f.notalent = t
+    end
+
+    function f.isRelevant()
+        if (f.notalent ~= nil) then
+            return (not Rotorbar.isTalent(f.notalent))
+        else
+            return (Rotorbar.isTalent(f.name))
+        end
+    end
+
     function f.showCool()
         local start, duration, enabled = GetSpellCooldown(name)
 
-        if (Rotorbar.isTalent(name) and start ~= nil) then
+        if (f.isRelevant() and start ~= nil) then
             local gstart, gduration = Rotorbar.globalCooldown()
 
             if (gstart+gduration >= start+duration) then
@@ -389,23 +494,25 @@ function Rotorbar.debuffIcon(name,aura)
     end
 
     local f=CreateFrame("Frame",nil,frame)
-    f:SetSize(36,36)
+
+    f.ident = Rotorbar.currentSpec().name .."-Debuff-" .. name
+    f:SetSize(ICON_SIZE,ICON_SIZE)
     f:SetPoint("CENTER")
     f:Hide()
     f.name = name
     f.type = "debuff"
-    local icon = sitexture(aura)
+    local icon = Rotorbar._texture(aura)
 
     f.texture = f:CreateTexture("ARTWORK")
     f.texture:SetTexture(icon)
-    f.texture:SetSize(36,36)
+    f.texture:SetSize(ICON_SIZE,ICON_SIZE)
     f.texture:SetPoint("CENTER")
 
-    table.insert(buttonfr, f)
+--    table.insert(buttonfr, f)
 
     f.label = f:CreateFontString()
     f.label:SetPoint("CENTER", f)
-    f.label:SetSize(36, 36)
+    f.label:SetSize(ICON_SIZE, ICON_SIZE)
     f.label:SetFont("Fonts\\ARIALN.TTF", 20, "OUTLINE")
 
     function f.refreshCount()
@@ -421,25 +528,38 @@ function Rotorbar.debuffIcon(name,aura)
 
     function f.verifyTexture()
         if (f.texture:GetTexture() == nil) then
-            f.texture:SetTexture(sitexture(aura))
+            f.texture:SetTexture(Rotorbar._texture(aura))
         end
     end
 
+    function f.ifNotTalent(t)
+        f.notalent = t
+    end
+
+    function f.isRelevant()
+        if (f.notalent ~= nil) then
+            return (not Rotorbar.isTalent(f.notalent))
+        else
+            return (Rotorbar.isTalent(f.name))
+        end
+    end
+
+    table.insert(Rotorbar.currentSpec().debuffIcons, f)
     return f, name
 end
 
-function Rotorbar.buttonTime(name,r,g,b,a)
-    local f = Rotorbar._basebutton(name,r,g,b,a)
+function Rotorbar.buttonTime(name, proc)
+    local f = Rotorbar._basebutton(name, proc)
     local k = findKey(name)
+
 
     f.type = "icon"
 
     f.label = f:CreateFontString()
     f.label:SetPoint("TOPRIGHT", f, "TOPRIGHT", 5, 5)
-    f.label:SetSize(36, 36)
+    f.label:SetSize(ICON_SIZE, ICON_SIZE)
     f.label:SetFont("Fonts\\ARIALN.TTF", 15, "OUTLINE")
     f.label:SetText(k)
-
 
     function f.updateKey()
         local k = findKey(name)
@@ -449,34 +569,43 @@ function Rotorbar.buttonTime(name,r,g,b,a)
     return f
 end
 
-function Rotorbar._basebutton(name,r,g,b,a)
+function Rotorbar._basebutton(name, proc)
     local f=CreateFrame("Frame",nil,frame)
 
-    f:SetSize(36,36)
+    if (proc ~= nil) then
+        f.ident = Rotorbar.currentSpec().name .. "-" .. name .. "-" .. proc
+    else
+        f.ident = Rotorbar.currentSpec().name .. "-" .. name
+    end
+
+    f:SetSize(ICON_SIZE,ICON_SIZE)
     f:SetPoint("CENTER")
     f:Hide()
     f.cool = CreateFrame("Cooldown", nil, f, "CooldownFrameTemplate")
     f.cool:SetAllPoints()
     f.name = name
-    local icon = sitexture(name)
+    local icon = Rotorbar._texture(name)
 
     f.texture = f:CreateTexture("ARTWORK")
     f.texture:SetTexture(icon)
-    f.texture:SetSize(36,36)
+    f.texture:SetSize(ICON_SIZE,ICON_SIZE)
     f.texture:SetPoint("CENTER")
-
-    if (r ~= nil) then
-        f.texture:SetDesaturated(true)
-        f.texture:SetVertexColor(r,g,b,a)
-    else
-        f.texture:SetDesaturated(false)
-        f.texture:SetVertexColor(1,1,1,1)
-    end
 
     function f.verifyTexture()
         if (f.texture:GetTexture() == nil) then
-            f.texture:SetTexture(sitexture(name))
+            f.texture:SetTexture(Rotorbar._texture(name))
         end
+    end
+
+    function f.color(r,g,b,a)
+        if (r ~= nil) then
+            f.texture:SetDesaturated(true)
+            f.texture:SetVertexColor(r,g,b,a)
+        else
+            f.texture:SetDesaturated(false)
+            f.texture:SetVertexColor(1,1,1,1)
+        end
+        return f
     end
 
     function f.showCool()
@@ -491,23 +620,30 @@ function Rotorbar._basebutton(name,r,g,b,a)
         end
     end
 
-    table.insert(buttonfr, f)
+ --   table.insert(buttonfr, f)
 
     return f, name
 end
 
 
-function Rotorbar.itemIcon(name,icon)
+function Rotorbar.itemIcon(name,slot,icon)
     local f = Rotorbar._itemBase(name,icon)
     f.label = f:CreateFontString()
     f.label:SetPoint("TOPRIGHT", f, "TOPRIGHT", 5, 5)
-    f.label:SetSize(36, 36)
+    f.label:SetSize(ICON_SIZE, ICON_SIZE)
     f.label:SetFont("Fonts\\ARIALN.TTF", 15, "OUTLINE")
     f.label:SetText(k)
+    f.slot = slot
 
     function f.updateKey()
         local k = findKey(name)
         f.label:SetText(k)
+    end
+
+    function f.update(name,texture)
+        f.name = name
+        f.texture:SetTexture(texture)
+        f.updateKey()
     end
 
     return f, name
@@ -516,7 +652,7 @@ end
 function Rotorbar._itemBase(name,icon)
     local f=CreateFrame("Frame",nil,frame)
 
-    f:SetSize(36,36)
+    f:SetSize(ICON_SIZE,ICON_SIZE)
     f:SetPoint("CENTER")
     f:Hide()
     f.cool = CreateFrame("Cooldown", nil, f, "CooldownFrameTemplate")
@@ -524,12 +660,14 @@ function Rotorbar._itemBase(name,icon)
     f.name = name
     f.type = "Item"
 
+    f.ident = "Equipment-" .. name
+
     f.texture = f:CreateTexture("ARTWORK")
     f.texture:SetTexture(icon)
-    f.texture:SetSize(36,36)
+    f.texture:SetSize(ICON_SIZE,ICON_SIZE)
     f.texture:SetPoint("CENTER")
 
-    table.insert(buttonfr, f)
+--    table.insert(buttonfr, f)
 
     return f, name
 end
@@ -541,11 +679,14 @@ function Rotorbar.itemCooldown(name,slot,icon)
 
     f.cool = CreateFrame("Cooldown", nil, f, "CooldownFrameTemplate")
     f.cool:SetAllPoints()
-
+    f.slot = slot
     f.ends = 0
 
+    function update()
+    end
+
     function f.showCool()
-        local start, duration, enabled = GetInventoryItemCooldown("player", slot)
+        local start, duration, enabled = GetInventoryItemCooldown("player", f.slot)
 
             --local gstart, gduration = Rotorbar.globalCooldown()
 
@@ -572,19 +713,44 @@ function Rotorbar.itemCooldown(name,slot,icon)
 end
 
 function Rotorbar.resetIcons()
+    Rotorbar._lastIcons = showIcons
+    Rotorbar._lastCool = coolIcons
     showIcons = {}
-    debuffIcons = {}
     coolIcons = {}
 end
 
-function Rotorbar.buttonActive(spell, fr, index)
-    spell:SetPoint("LEFT", fr, ((index - 1)  * 36) + 12, 0)
-    spell:Show()
+function Rotorbar.expireDots()
+    for k, v in pairs(Rotorbar._mobsInCombat) do
+        for x, y in pairs(v.dots) do
+            local left = y - GetTime()
 
+            if (left <= 0) then
+                Rotorbar._mobsInCombat[k].debuff[x] = nil
+                Rotorbar._mobsInCombat[k].dots[x] = nil
+            else
+                Rotorbar._mobsInCombat[k].debuff[x] = true
+            end
+        end
+    end
+end
+
+function Rotorbar.expireMobs()
+    for k, v in pairs(Rotorbar._mobsInCombat) do
+        if (GetTime() - Rotorbar._mobsInCombat[k].since > 5) then
+            Rotorbar._mobsInCombat[k] = nil
+        end
+    end
+end
+
+function Rotorbar.buttonActive(spell, fr, index)
+    spell:SetPoint("LEFT", fr, ((index - 1)  * ICON_SIZE) + BORDER_SIZE, 0)
+    spell:Show()
+end
+
+function Rotorbar.buttonActions(spell)
     if (spell.type == "debuff") then
         spell.refreshCount()
     end
-
     if (spell.showCool ~= nil) then
         spell.showCool()
     end
@@ -596,37 +762,59 @@ function Rotorbar.buttonActive(spell, fr, index)
     end
 end
 
-function Rotorbar.refresh()
-    for i = 1, tablelength(buttonfr) do
-        buttonfr[i]:Hide()
+function Rotorbar._economove(show, last, fr)
+    local found = {}
+    for i = 1, tablelength(show)  do
+        if (tablelength(last) >= i and show[i].ident == last[i].ident) then
+            found[show[i].ident] = true
+        elseif (tablelength(last) < i or show[i].ident ~= last[i].ident) then
+            Rotorbar.buttonActive(show[i], fr, i)
+            found[show[i].ident] = true
+        end
+        Rotorbar.buttonActions(show[i])
     end
+    for j = 1, tablelength(last)  do
+        if (found[last[j].ident] ~= true) then
+            last[j]:Hide()
+        end
+    end
+end
 
+function Rotorbar.refresh()
     local rot = 0
     local rm = 0
     local deb = 0
     local dm = 0
+    local inc = 0
     local cool = 0
 
     if (tablelength(showIcons)) then
-        rot = (tablelength(showIcons) * 36)
+        rot = (tablelength(showIcons) * ICON_SIZE)
         if (rot > 0) then
-            rot = rot + 24
-            rm = 8
+            rot = rot + (BORDER_SIZE * 2)
+            rm = BORDER_SIZE
         end
-    end
-    if (tablelength(debuffIcons)) then
-        deb = (tablelength(debuffIcons) * 36)
-        if (deb > 0) then
-            deb = deb + 24
-            dm = 8
-        end
-    end
-    if (tablelength(coolIcons)) then
-        cool = (tablelength(coolIcons) * 36)
-        if (cool > 0) then cool = cool + 24 end
     end
 
-    frame:SetWidth((rot - rm) + (deb - dm) + cool)
+    if (tablelength(Rotorbar.debuffShow) > 0) then
+        deb = (tablelength(Rotorbar.debuffShow) * ICON_SIZE)
+        if (deb > 0) then
+            deb = deb + (BORDER_SIZE * 2)
+            dm = BORDER_SIZE
+        end
+    end
+
+    if (Rotorbar.currentSpec().tank == true) then
+        inc = (ICON_SIZE * 2) + BORDER_SIZE
+    else
+
+    end
+    if (tablelength(coolIcons)) then
+        cool = (tablelength(coolIcons) * ICON_SIZE)
+        if (cool > 0) then cool = cool + (BORDER_SIZE * 2) end
+    end
+
+    frame:SetWidth((rot - rm) + (deb - dm) + inc + cool)
 
     if (rot == 0) then
         frame.rotation:Hide()
@@ -634,41 +822,68 @@ function Rotorbar.refresh()
         frame.rotation:Show()
         frame.rotation:SetPoint("LEFT", frame, 0, 0)
         frame.rotation:SetWidth(rot)
-        for i = 1, tablelength(showIcons)  do
-            Rotorbar.buttonActive(showIcons[i], frame.rotation, i)
-        end
     end
 
-    if (deb == 0) then
-        frame.debuffs:Hide()
+    Rotorbar._economove(showIcons, Rotorbar._lastIcons, frame.rotation)
+
+
+    frame.debuffs:SetPoint("LEFT", frame, rot - rm, 0)
+
+    if (inc > 0) then
+        frame.incoming:Show()
+        frame.incoming:SetPoint("LEFT", frame, (rot - rm) + (deb - dm), 0)
     else
-        frame.debuffs:Show()
-        frame.debuffs:SetPoint("LEFT", frame, rot - rm, 0)
-        frame.debuffs:SetWidth(deb)
-        for i = 1, tablelength(debuffIcons) do
-            Rotorbar.buttonActive(debuffIcons[i], frame.debuffs, i)
-        end
+        frame.incoming:Hide()
     end
 
     if (cool == 0) then
         frame.cooldowns:Hide()
     else
         frame.cooldowns:Show()
-        frame.cooldowns:SetPoint("LEFT", frame, (rot - rm) + (deb - dm), 0)
+        frame.cooldowns:SetPoint("LEFT", frame, (rot - rm) + (deb - dm) + inc, 0)
         frame.cooldowns:SetWidth(cool)
-        for i = 1, tablelength(coolIcons) do
-            Rotorbar.buttonActive(coolIcons[i], frame.cooldowns, i)
-        end
     end
 
+    Rotorbar._economove(coolIcons, Rotorbar._lastCool, frame.cooldowns)
+
+    for i = 1, tablelength(Rotorbar.currentSpec().debuffIcons) do
+        Rotorbar.buttonActions(Rotorbar.currentSpec().debuffIcons[i])
+    end
+end
+
+function Rotorbar.updateDebuffIcons()
+    local icons = tablelength(Rotorbar.currentSpec().debuffIcons)
+
+    for i = 1, tablelength(Rotorbar.debuffShow) do
+        Rotorbar.debuffShow[i]:Hide()
+    end
+
+    if (icons == 0) then
+        frame.debuffs:Hide()
+    else
+        local vis = 0
+        frame.debuffs:Show()
+
+        Rotorbar.debuffShow = {}
+        for i = 1, tablelength(Rotorbar.currentSpec().debuffIcons) do
+            if (Rotorbar.currentSpec().debuffIcons[i].isRelevant()) then
+                table.insert(Rotorbar.debuffShow, Rotorbar.currentSpec().debuffIcons[i])
+            end
+        end
+
+        frame.debuffs:SetWidth((ICON_SIZE * tablelength(Rotorbar.debuffShow)) + (BORDER_SIZE * 2))
+        for i = 1, tablelength(Rotorbar.debuffShow) do
+            Rotorbar.buttonActive(Rotorbar.debuffShow[i], frame.debuffs, i)
+        end
+    end
+end
+
+function Rotorbar.updateIncoming(inco)
+    frame.incoming.draw(inco)
 end
 
 function Rotorbar.showNext (icon)
     table.insert(showIcons, icon)
-end
-
-function Rotorbar.showDebuff (icon)
-    table.insert(debuffIcons, icon)
 end
 
 function Rotorbar.showCooldown (icon)
@@ -676,24 +891,27 @@ function Rotorbar.showCooldown (icon)
 end
 
 function frameback(fr)
-    fr:SetHeight(40+20)
+    fr:SetHeight(ICON_SIZE+(BORDER_SIZE*2))
     fr:SetBackdrop({
-        bgFile = "Interface\\FrameGeneral\\UI-Background-Marble",
+       -- bgFile = "Interface\\FrameGeneral\\UI-Background-Marble",
         edgeFile = "Interface\\Tooltips\\UI-Tooltip-Border",
         tile = true,
-        tileSize = 36,
-        edgeSize = 36,
+        tileSize = ICON_SIZE,
+        edgeSize = ICON_SIZE,
         insets = {
-            left = 11,
-            right = 12,
-            top = 12,
-            bottom = 11
+            left = BORDER_SIZE,
+            right = BORDER_SIZE,
+            top = BORDER_SIZE,
+            bottom = BORDER_SIZE
         }
     })
 end
 
-frame:SetWidth(40+20)
-frame:SetHeight(40+20)
+BORDER_SIZE = 12
+ICON_SIZE = 32
+
+frame:SetWidth(ICON_SIZE+(BORDER_SIZE * 2))
+frame:SetHeight(ICON_SIZE+(BORDER_SIZE * 2))
 frame:ClearAllPoints()
 
 frame:SetPoint("CENTER",UIParent)
@@ -712,22 +930,16 @@ frameback(frame.debuffs)
 frame.rotation = CreateFrame("Frame", "Rotorbar_Rotation", frame)
 frameback(frame.rotation)
 
-local handler = registerEvents(events, frame)
-local started = false
-
-function frame:onUpdate(sinceLastUpdate)
-    self.sinceLastUpdate = (self.sinceLastUpdate or 0) + sinceLastUpdate;
-
-    if (self.sinceLastUpdate >= 3 or (started and self.sinceLastUpdate >= .35)) then
-        handler()
-        started = true
-        self.sinceLastUpdate = 0;
-    end
+function registerOnUpdate(onup)
+    frame.onUpdate = onup
+    frame:SetScript("OnUpdate",frame.onUpdate)
 end
 
-frame:SetScript("OnUpdate",frame.onUpdate)
+handler = registerEvents(events, frame)
 
-buttonfr = {}
+
+
+--buttonfr = {}
 gcdmade = false
 
 function npcId(guid)
@@ -741,11 +953,13 @@ end
 
 function tablelength(T)
     local count = 0
+    if (T ~= nil) then
     for _ in pairs(T) do count = count + 1 end
+    end
     return count
 end
 
-function sitexture(_name)
+function Rotorbar._texture(_name)
     local name, rank, icon, castingTime, minRange, maxRange, spellID = GetSpellInfo(_name)
     return icon
 end
@@ -770,12 +984,10 @@ function equipmentInit(slot)
     Rotorbar.equipment[slot] = {}
     local id = GetInventoryItemID("player", slot)
 
-    Rotorbar.equipment[slot].show = function()
+    Rotorbar.equipment[slot].load = function()
         local id = GetInventoryItemID("player", slot)
-        local usable, ready, left = equipmentUsable(slot)
 
-        if (usable and Rotorbar.equipment[slot].id ~= id) then
-
+        if (Rotorbar.equipment[slot].id ~= id) then
             local name, link, quality, iLevel, reqLevel, class, subclass, maxStack, equipSlot, texture, vendorPrice = GetItemInfo(id)
 
             if (name ~= nil) then
@@ -783,11 +995,18 @@ function equipmentInit(slot)
                 Rotorbar.equipment[slot].name = name
 
                 if (Rotorbar.equipment[slot].icon == nil) then
-                    Rotorbar.equipment[slot].icon = Rotorbar.itemIcon(name, texture)
+                    Rotorbar.equipment[slot].icon = Rotorbar.itemIcon(name, slot, texture)
                     Rotorbar.equipment[slot].cool = Rotorbar.itemCooldown(name, slot, texture)
+                else
+                    Rotorbar.equipment[slot].icon.update(name, texture)
+                    Rotorbar.equipment[slot].cool.update(name, texture)
                 end
             end
         end
+    end
+
+    Rotorbar.equipment[slot].show = function()
+        local usable, ready, left = equipmentUsable(slot)
 
         if (Rotorbar.equipment[slot].name ~= nil) then
             return usable, ready, Rotorbar.equipment[slot].icon, Rotorbar.equipment[slot].cool
@@ -795,6 +1014,8 @@ function equipmentInit(slot)
             return false
         end
     end
+
+    Rotorbar.equipment[slot].load()
 end
 
 whatsbound = {
@@ -915,6 +1136,8 @@ function findKey(spell)
         local actionbar = whatsbound.actionbar
 
         if (Rotorbar.class == "Druid") then
+            --print (GetShapeshiftForm())
+
             if (GetShapeshiftForm() == 1) then
                 actionbar = whatsbound.druid.bear
 
@@ -925,7 +1148,8 @@ function findKey(spell)
                     actionbar = whatsbound.druid.prowl
                 end
 
-            elseif (GetShapeshiftForm() == 5) then
+
+            elseif (GetShapeshiftForm() == 4) then
                 actionbar = whatsbound.druid.moonkin
             end
         end

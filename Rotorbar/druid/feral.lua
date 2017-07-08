@@ -1,11 +1,13 @@
 Feral = {
+    name = "Feral",
+
     class = function()
         Rotorbar.classIcon(1, 0.75, 0, 1)
     end,
 
     icons = function()
-        Feral.catform = Rotorbar.buttonTime("Cat Form")
-        Feral.prowl = Rotorbar.buttonTime("Prowl")
+        Feral.catform = Rotorbar.flash("Cat Form")
+        Feral.prowl = Rotorbar.flash("Prowl")
         Feral.rip = Rotorbar.buttonTime("Rip")
         Feral.rake = Rotorbar.buttonTime("Rake")
         Feral.thrash = Rotorbar.buttonTime("Thrash")
@@ -22,8 +24,8 @@ Feral = {
         Rotorbar.cooldown("Ashamane's Frenzy")
         Rotorbar.cooldown("Berserk")
 
-        Feral.ripDebuff = Rotorbar.debuffIcon("Rip")
-        Feral.rakeDebuff = Rotorbar.debuffIcon("Rake")
+        Rotorbar.debuffIcon("Rip")
+        Rotorbar.debuffIcon("Rake")
     end,
 
     rotation =  function()
@@ -34,9 +36,6 @@ Feral = {
             local energy = UnitPower("player", 3)
             local comboPoints = UnitPower("player", 4)
             local targetHealthPercent = UnitHealth("target") / UnitHealthMax("target")
-
-            Rotorbar.showDebuff(Feral.ripDebuff)
-            Rotorbar.showDebuff(Feral.rakeDebuff)
 
             if (Rotorbar.buffed("Prowl") == 0 and Rotorbar.isUsableCooldown("Prowl")) then
                 Rotorbar.showNext(Feral.prowl)

@@ -1,7 +1,11 @@
 Discipline = {
+    name = "Discipline",
+
     class = function()
         Rotorbar.classIcon(1, 1, 0, 1)
     end,
+
+    alwaysShowCooldowns = true,
 
     icons = function()
         Discipline.shadowWordPain = Rotorbar.buttonTime("Shadow Word: Pain")
@@ -12,15 +16,24 @@ Discipline = {
         Discipline.powerWordSolace = Rotorbar.buttonTime("Power Word: Solace")
         Discipline.lightsWrath = Rotorbar.buttonTime("Light's Wrath")
 
+        Rotorbar.cooldown("Angelic Feather")
+        Rotorbar.cooldown("Leap of Faith")
+        Rotorbar.cooldown("Power Word: Shield")
+        Rotorbar.cooldown("Pain Suppression")
+        Rotorbar.cooldown("Purify")
+        Rotorbar.cooldown("Mass Dispel")
+        Rotorbar.cooldown("Power Word: Radiance")
+        Rotorbar.cooldown("Power Word: Barrier")
         Rotorbar.cooldown("Divine Star")
         Rotorbar.cooldown("Halo")
         Rotorbar.cooldown("Mindbender")
-        Rotorbar.cooldown("Shadowfiend")
+        Rotorbar.cooldown("Shadowfiend").ifNotTalent("Mindbender")
         Rotorbar.cooldown("Power Infusion")
         Rotorbar.cooldown("Evangelism")
+        Rotorbar.cooldown("Rapture")
 
-        Discipline.shadowWordPainDebuff = Rotorbar.debuffIcon("Shadow Word: Pain")
-        Discipline.purgeTheWickedDebuff = Rotorbar.debuffIcon("Purge the Wicked")
+        Rotorbar.debuffIcon("Shadow Word: Pain").ifNotTalent("Purge the Wicked")
+        Rotorbar.debuffIcon("Purge the Wicked")
     end,
 
     rotation = function()
@@ -30,14 +43,10 @@ Discipline = {
             if (purge < 1) then
                 Rotorbar.showNext(Discipline.purgeTheWicked)
             end
-
-            Rotorbar.showDebuff(Discipline.purgeTheWickedDebuff)
         else
             if (Rotorbar.debuffed("Shadow Word: Pain") == 0) then
                 Rotorbar.showNext(Discipline.shadowWordPain)
             end
-
-            Rotorbar.showDebuff(Discipline.shadowWordPainDebuff)
         end
 
         if (Rotorbar.isUsableCooldown("Schism")) then

@@ -1,18 +1,22 @@
 Blood = {
+    name = "Blood",
+
     class = function()
         Rotorbar.classIcon(1, 0, 0, 1)
     end,
 
+    tank = true,
+
     icons = function()
-        Blood.deathAndDecayCrimson = Rotorbar.flash("Death and Decay", 1, .25, .25, 1)
-        Blood.deathStrikeHeals = Rotorbar.flash("Death Strike", 1, 0.5, 0.5, 1)
-        Blood.deathStrikeIce = Rotorbar.flash("Death Strike", .75, 0, 1, 1)
-        Blood.blooddrinkerHeals =  Rotorbar.flash("Blooddrinker")
-        Blood.consumptionHeals = Rotorbar.flash("Consumption")
+        Blood.deathAndDecayCrimson = Rotorbar.flash("Death and Decay", "Crimson Scourge").color(1, .25, .25, 1)
+        Blood.deathStrikeHeals = Rotorbar.flash("Death Strike", "Health").color(1, 0.5, 0.5, 1)
+        Blood.deathStrikeIce = Rotorbar.flash("Death Strike", "Icebound Fortitude").color(.75, 0, 1, 1)
+        Blood.blooddrinkerHeals =  Rotorbar.flash("Blooddrinker", "Health")
+        Blood.consumptionHeals = Rotorbar.flash("Consumption", "Health")
         Blood.iceboundFortitude = Rotorbar.flash("Icebound Fortitude")
         Blood.vampiricBlood = Rotorbar.flash("Vampiric Blood")
-        Blood.dancingRuneWeapon = Rotorbar.flash("Dancing Rune Weapon")
 
+        Blood.dancingRuneWeapon = Rotorbar.buttonTime("Dancing Rune Weapon")
         Blood.deathAndDecay = Rotorbar.buttonTime("Death and Decay")
         Blood.deathStrike = Rotorbar.buttonTime("Death Strike")
         Blood.heartStrike = Rotorbar.buttonTime("Heart Strike")
@@ -28,7 +32,7 @@ Blood = {
         Blood.runeTap =  Rotorbar.buttonTime("Rune Tap")
         Blood.bonestorm =  Rotorbar.buttonTime("Bonestorm")
 
-        Blood.bloodPlague = Rotorbar.debuffIcon("Blood Plague", "55078")
+        Rotorbar.debuffIcon("Blood Plague", "55078")
 
         Rotorbar.cooldown("Death Grip")
         Rotorbar.cooldown("Gorefiend's Grasp")
@@ -44,7 +48,6 @@ Blood = {
     end,
 
     rotation = function()
-        Rotorbar.showDebuff(Blood.bloodPlague)
 
         local showedDS = false
         local showedBD = false
@@ -82,7 +85,7 @@ Blood = {
             local vampire = Rotorbar.isUsableCooldown("Vampiric Blood")
             if (healthpercent < .5) then
                 if (vampire and icebound) then
-                    Rotorbar.RshowNext (Blood.vampiricBlood)
+                    Rotorbar.showNext (Blood.vampiricBlood)
                 elseif (icebound) then
                     Rotorbar.showNext (Blood.iceboundFortitude)
                 elseif (vampire) then
@@ -92,7 +95,7 @@ Blood = {
 
             -- Dancing Rune Weapon
             local runeWeaponGo = Rotorbar.isUsableCooldown("Dancing Rune Weapon")
-            if (healthpercent < .5 and runeWeaponGo) then
+            if (runeWeaponGo and Rotorbar.isBoss()) then
                 Rotorbar.showNext(Blood.dancingRuneWeapon)
             end
 
@@ -107,8 +110,8 @@ Blood = {
                 Rotorbar.showNext (Blood.consumptionHeals)
             end
 
-            -- Death Strike Emergency
-            if (Rotorbar.isUsableCooldown("Death Strike") and healthpercent < .50) then
+            -- Death Strike Heals
+            if (Rotorbar.isUsableCooldown("Death Strike") and healthpercent < .75) then
                 Rotorbar.showNext (Blood.deathStrikeHeals)
                 showedDS = true
             end
@@ -123,15 +126,9 @@ Blood = {
                 Rotorbar.showNext (Blood.bloodTap)
             end
 
-            -- Death Strike if it will heals 25% or more.
-            if (not showedDS and Rotorbar.isUsableCooldown("Death Strike") and healthpercent < .75 and runicPercent > .22) then
-                Rotorbar.showNext (Blood.deathStrike)
-                showedDS = true
-            end
-
             -- Bonestorm
             local bonestormGo, bonestormLeft = Rotorbar.isUsableCooldown("Bonestorm")
-            if (bonestormGo and runicPercent == 1) then
+            if (bonestormGo and (runicPercent >= .75 or (Rotorbar.targets() >= 3 and runicPercent > .5))) then
                 Rotorbar.showNext (Blood.bonestorm)
             end
 
@@ -179,8 +176,8 @@ Blood = {
                 Rotorbar.showNext (Blood.heartStrike)
             end
 
-            -- Death Strike if heals 10% or if completely runic capped.
-            if (not showedDS and Rotorbar.isUsableCooldown("Death Strike") and (healthpercent < .9 or runicPercent == 1)) then
+            -- Death Strike if it heals 10% or completely runic capped and not stealing runic power from a bonestorm.
+            if (not showedDS and Rotorbar.isUsableCooldown("Death Strike") and not bonestormGo and (healthpercent < .9 or runicPercent == 1)) then
                 Rotorbar.showNext (Blood.deathStrike)
             end
 
