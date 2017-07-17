@@ -4,14 +4,14 @@ local showIcons = {}
 local debuffIcons = {}
 local coolIcons = {}
 
-RotorbarBossAbilities = {}
-
 Rotorbar = {
     class = UnitClass("player"),
     specialization = -1,
     equipment = {},
+    damageCounter = {},
     _handler = nil,
     _mobsInCombat = {},
+    _mobTargetNum = 0,
     _guidtounit = {},
     _talents = {},
     _global = {
@@ -51,7 +51,6 @@ function Rotorbar.currentSpec(spec)
 end
 
 function Rotorbar.loadSpec(spec)
-    print (spec ~= nil)
     Rotorbar.currentSpec(spec)
     Rotorbar.updateTalents()
 
@@ -114,6 +113,21 @@ end
 
 function Rotorbar.buffed(_name)
     local name, rank, icon, count, dispelType, duration, expires, caster = UnitBuff("player", _name)
+
+    if (name == nil) then
+        return 0, 0
+    else
+        local timeleft = expires - GetTime()
+        if (count > 0) then
+            return count, timeleft
+        else
+            return 1, timeleft
+        end
+    end
+end
+
+function Rotorbar.petBuffed(_name)
+    local name, rank, icon, count, dispelType, duration, expires, caster = UnitBuff("pet", _name)
 
     if (name == nil) then
         return 0, 0
@@ -199,11 +213,11 @@ function Rotorbar.isUsableCooldown(spell)
             local start, duration = GetSpellCooldown(spell)
             local gstart, gduration = Rotorbar.globalCooldown()
             if (start == 0) then
-                return true, true, 0, GetSpellCount(spell)
+                return true, true, 0, GetSpellCharges(spell)
             else
                 local cdleft = (start+duration)-GetTime()
                 if (cdleft <= (gstart+gduration)-GetTime()) then
-                    return true, true, 0, GetSpellCount(spell)
+                    return true, true, 0, GetSpellCharges(spell)
                 else
                     return false, true, cdleft, 0
                 end
@@ -640,7 +654,7 @@ function Rotorbar.itemIcon(name,slot,icon)
         f.label:SetText(k)
     end
 
-    function f.update(name,texture)
+    function f.updateGear(name,texture)
         f.name = name
         f.texture:SetTexture(texture)
         f.updateKey()
@@ -682,7 +696,9 @@ function Rotorbar.itemCooldown(name,slot,icon)
     f.slot = slot
     f.ends = 0
 
-    function update()
+    function f.updateGear(name,texture)
+        f.name = name
+        f.texture:SetTexture(texture)
     end
 
     function f.showCool()
@@ -719,26 +735,229 @@ function Rotorbar.resetIcons()
     coolIcons = {}
 end
 
-function Rotorbar.expireDots()
-    for k, v in pairs(Rotorbar._mobsInCombat) do
-        for x, y in pairs(v.dots) do
-            local left = y - GetTime()
+function Rotorbar.createLogger()
+    local f  = CreateFrame("Frame", "RotorLogFrame", UIParent)
+    f.width  = 720
+    f.height = 480
+    f:SetFrameStrata("FULLSCREEN_DIALOG")
+    f:SetSize(f.width, f.height)
+    f:SetPoint("CENTER", UIParent, "CENTER", 0, 0)
+    f:SetBackdrop({
+        bgFile   = "Interface\\DialogFrame\\UI-DialogBox-Background",
+        edgeFile = "Interface\\DialogFrame\\UI-DialogBox-Border",
+        tile     = true,
+        tileSize = 32,
+        edgeSize = 32,
+        insets   = { left = 8, right = 8, top = 8, bottom = 8 }
+    })
+    f:SetBackdropColor(0, 0, 0, 1)
+    f:EnableMouse(true)
+    f:EnableMouseWheel(true)
 
-            if (left <= 0) then
-                Rotorbar._mobsInCombat[k].debuff[x] = nil
-                Rotorbar._mobsInCombat[k].dots[x] = nil
-            else
-                Rotorbar._mobsInCombat[k].debuff[x] = true
-            end
+    -- Make movable/resizable
+    f:SetMovable(true)
+    f:SetResizable(enable)
+    f:SetMinResize(100, 100)
+    f:RegisterForDrag("LeftButton")
+    f:SetScript("OnDragStart", f.StartMoving)
+    f:SetScript("OnDragStop", f.StopMovingOrSizing)
+
+    tinsert(UISpecialFrames, "RotorLogFrame")
+
+    -- Close button
+    local closeButton = CreateFrame("Button", nil, f, "UIPanelButtonTemplate")
+    closeButton:SetPoint("BOTTOM", 0, 10)
+    closeButton:SetHeight(25)
+    closeButton:SetWidth(70)
+    closeButton:SetText(CLOSE)
+    closeButton:SetScript("OnClick", function(self)
+        HideParentPanel(self)
+    end)
+    f.closeButton = closeButton
+
+    -- ScrollingMessageFrame
+    local messageFrame = CreateFrame("ScrollingMessageFrame", nil, f)
+    messageFrame:SetPoint("CENTER", 15, 10)
+    messageFrame:SetSize(f.width, f.height - 50)
+    messageFrame:SetFontObject(GameFontNormal)
+    messageFrame:SetTextColor(1, 1, 1, 1) -- default color
+    messageFrame:SetJustifyH("LEFT")
+    messageFrame:SetHyperlinksEnabled(true)
+    messageFrame:SetFading(false)
+    messageFrame:SetMaxLines(10000)
+    f.messageFrame = messageFrame
+
+    -------------------------------------------------------------------------------
+    -- Scroll bar
+    -------------------------------------------------------------------------------
+    local scrollBar = CreateFrame("Slider", nil, f, "UIPanelScrollBarTemplate")
+    scrollBar:SetPoint("RIGHT", f, "RIGHT", -10, 10)
+    scrollBar:SetSize(30, f.height - 90)
+    scrollBar:SetMinMaxValues(0, 999)
+    scrollBar:SetValueStep(1)
+    scrollBar.scrollStep = 1
+    f.scrollBar = scrollBar
+
+    scrollBar:SetScript("OnValueChanged", function(self, value)
+        messageFrame:SetScrollOffset(select(2, scrollBar:GetMinMaxValues()) - value)
+    end)
+
+    scrollBar:SetValue(select(2, scrollBar:GetMinMaxValues()))
+
+    f:SetScript("OnMouseWheel", function(self, delta)
+        local cur_val = scrollBar:GetValue()
+        local min_val, max_val = scrollBar:GetMinMaxValues()
+
+        if delta < 0 and cur_val < max_val then
+            cur_val = math.min(max_val, cur_val + 1)
+            scrollBar:SetValue(cur_val)
+        elseif delta > 0 and cur_val > min_val then
+            cur_val = math.max(min_val, cur_val - 1)
+            scrollBar:SetValue(cur_val)
         end
+    end)
+
+    Rotorbar.logFrame = f
+end
+
+Rotorbar.createLogger()
+
+function Rotorbar.log(msg)
+    Rotorbar.logFrame.messageFrame:AddMessage(msg)
+end
+
+function Rotorbar.combatStart()
+    Rotorbar.logFrame.messageFrame:AddMessage(date() .. " Combat Started")
+end
+
+function Rotorbar.combatEnd()
+    for k, v in pairs(Rotorbar.damageCounter) do
+        local indic
+        if (v.main) then
+            indic = "Primary Target"
+        else
+            indic = "Enemy #" .. v.index
+        end
+        local dps = v.damage / (GetTime() - v.start)
+        local dpstr
+        if (dps > 1000000) then
+            dpstr = Rotorbar.round(dps / 1000000, 2) .. "M"
+        else
+            dpstr = Rotorbar.round(dps / 1000, 2) .. "K"
+        end
+        Rotorbar.logFrame.messageFrame:AddMessage(date() .. " DPS on " .. indic .. ": " .. dpstr , .5, 0, 0)
+    end
+
+    Rotorbar.logFrame.messageFrame:AddMessage(date() .. " Combat Ended")
+    Rotorbar.log("------------------------------")
+    Rotorbar.damageCounter = {}
+    Rotorbar._mobTargetNum = 0
+end
+
+function Rotorbar.target(name)
+    Rotorbar.logFrame.messageFrame:AddMessage(date() .. " Primary Target " .. name)
+end
+
+function Rotorbar.getCounter(guid, main, index)
+    if (Rotorbar.damageCounter[guid] == nil) then
+        Rotorbar.damageCounter[guid] = {
+            start = GetTime(),
+            main = main,
+            index = index,
+            damage = 0
+        }
+    end
+    return Rotorbar.damageCounter[guid]
+end
+
+function Rotorbar.kill(guid, index)
+    local main = (UnitGUID("target") == guid)
+    local dc = Rotorbar.getCounter(guid, main, index)
+    local indic
+    if (main) then
+        indic = "Primary Target"
+    else
+        indic = "Enemy #" .. index
+    end
+    local dps = dc.damage / (GetTime() - dc.start)
+    local dpstr
+    if (dps > 1000000) then
+        dpstr = Rotorbar.round(dps / 1000000, 2) .. "M"
+    else
+        dpstr = Rotorbar.round(dps / 1000, 2) .. "K"
+    end
+    Rotorbar.logFrame.messageFrame:AddMessage(date() .. indic .. " Killed! DPS on this target: " .. dpstr , 1, 0, 0)
+    Rotorbar.damageCounter[guid] = nil
+end
+
+function Rotorbar.dot(spell, amount, guid, index)
+    local main = (UnitGUID("target") == guid)
+    local dc = Rotorbar.getCounter(guid,main,index)
+    dc.damage = dc.damage + amount
+
+    local indic
+    local scale
+    if (not main) then
+        indic = "DoT on Enemy #" .. index
+        scale = .4
+    else
+        indic = "Primary Target DoT"
+        scale = .6
+    end
+
+    Rotorbar.logFrame.messageFrame:AddMessage(date() .. " " .. indic .. " [" .. spell .. "] " .. Rotorbar.damageString(amount, main), scale, scale, scale)
+end
+
+function Rotorbar.damage(spell, amount, guid, index)
+    local main = (UnitGUID("target") == guid)
+    local dc = Rotorbar.getCounter(guid,main,index)
+    dc.damage = dc.damage + amount
+    local indic
+    local scale
+    if (not main) then
+        indic = "AoE Splash Enemy #" .. index
+        scale = .4
+    else
+        indic = "Primary Target Damage"
+        scale = .8
+    end
+    Rotorbar.logFrame.messageFrame:AddMessage(date() .. " " .. indic .. " [" .. spell .. "] " .. Rotorbar.damageString(amount, main), scale, scale, scale)
+end
+
+function Rotorbar.damageString(am,main)
+    local amount = tonumber(am)
+    local amstr
+    if (amount ~= nil) then
+        if (amount > 1000000) then
+            amstr = Rotorbar.round(amount / 1000000, 2) .. "M"
+        else
+            amstr = Rotorbar.round(amount / 1000, 2) .. "K"
+        end
+        if (main) then
+            return amstr .. " (" .. Rotorbar.round(amount / UnitHealthMax("target") * 100, 2) .. "%), target health: " .. Rotorbar.round((UnitHealth("target") / UnitHealthMax("target")) * 100, 2) .. "%"
+        else
+            return amstr
+        end
+    else
+        return ""
     end
 end
 
-function Rotorbar.expireMobs()
-    for k, v in pairs(Rotorbar._mobsInCombat) do
-        if (GetTime() - Rotorbar._mobsInCombat[k].since > 5) then
-            Rotorbar._mobsInCombat[k] = nil
-        end
+function Rotorbar.round(number, decimals)
+    return (("%%.%df"):format(decimals)):format(number)
+end
+
+function Rotorbar.cast(spell, amount)
+    local suggest = date() .. " Suggestion [" .. Rotorbar.suggest .. "]"
+    if (Rotorbar.suggestReason ~= nil) then
+        suggest = suggest .. ": " .. Rotorbar.suggestReason
+    end
+    Rotorbar.logFrame.messageFrame:AddMessage(suggest, .5, 0, .75)
+
+    if (Rotorbar.suggest ~= spell) then
+        Rotorbar.logFrame.messageFrame:AddMessage(date() .. " Cast [" .. spell .. "] " .. Rotorbar.damageString(amount), .75, .5, .25)
+    else
+        Rotorbar.logFrame.messageFrame:AddMessage(date() .. " Cast [" .. spell .. "] " .. Rotorbar.damageString(amount), .25, .5, .75)
     end
 end
 
@@ -882,7 +1101,16 @@ function Rotorbar.updateIncoming(inco)
     frame.incoming.draw(inco)
 end
 
-function Rotorbar.showNext (icon)
+function Rotorbar.showNext (icon, suggest)
+    if (icon ~= nil and tablelength(showIcons) == 1) then
+        if (suggest ~= nil) then
+            Rotorbar.suggest = icon.name
+            Rotorbar.suggestReason = suggest
+        else
+            Rotorbar.suggest = icon.name
+            Rotorbar.suggestReason = nil
+        end
+    end
     table.insert(showIcons, icon)
 end
 
@@ -914,12 +1142,28 @@ frame:SetWidth(ICON_SIZE+(BORDER_SIZE * 2))
 frame:SetHeight(ICON_SIZE+(BORDER_SIZE * 2))
 frame:ClearAllPoints()
 
-frame:SetPoint("CENTER",UIParent)
-frame:SetPoint("Top", UIParent, 0, -20)
-frame:Show()
+function Rotorbar.setPosition()
+    print (RotorbarOptions.left, RotorbarOptions.top)
+    frame:SetPoint("CENTER",UIParent)
+    frame:SetPoint("Top", UIParent, RotorbarOptions.left, RotorbarOptions.top)
+    frame:Show()
+end
 
 frame:SetMovable(true)
 frame:EnableMouse(true)
+
+frame:RegisterForDrag("LeftButton")
+
+frame:SetScript("OnDragStart", function(self)
+    self:StartMoving();
+end)
+
+frame:SetScript("OnDragStop", function(self)
+    self:StopMovingOrSizing();
+    local _, _, _, left, top = self:GetPoint("Top", UIParent)
+    RotorbarOptions.left = left
+    RotorbarOptions.top = top
+end)
 
 frame.cooldowns = CreateFrame("Frame", "Rotorbar_Cooldowns", frame)
 frameback(frame.cooldowns)
@@ -998,8 +1242,8 @@ function equipmentInit(slot)
                     Rotorbar.equipment[slot].icon = Rotorbar.itemIcon(name, slot, texture)
                     Rotorbar.equipment[slot].cool = Rotorbar.itemCooldown(name, slot, texture)
                 else
-                    Rotorbar.equipment[slot].icon.update(name, texture)
-                    Rotorbar.equipment[slot].cool.update(name, texture)
+                    Rotorbar.equipment[slot].icon.updateGear(name, texture)
+                    Rotorbar.equipment[slot].cool.updateGear(name, texture)
                 end
             end
         end
@@ -1180,5 +1424,59 @@ function findKey(spell)
                 return whatsbound.multiactionbar4[i].key
             end
         end
+    end
+end
+
+
+SLASH_ROTORBAR1 = "/rotor"
+SlashCmdList.ROTORBAR = function(msg,editbox)
+    if (msg == "log") then
+        if Rotorbar.logFrame:IsShown() then
+            Rotorbar.logFrame:Hide()
+        else
+            Rotorbar.logFrame:Show()
+        end
+
+    elseif (msg == "clear") then
+        Rotorbar.logFrame.messageFrame:Clear()
+
+    elseif (msg == "show") then
+        frame:Show()
+
+    elseif (msg == "hide") then
+        frame:Hide()
+
+    elseif (msg == "position") then
+        RotorbarOptions.left = 0
+        RotorbarOptions.top = -20
+        frame:SetPoint("Top", UIParent, RotorbarOptions.left, RotorbarOptions.top)
+
+
+    elseif (msg == "gear on") then
+        RotorbarOptions.showUsables = true
+    elseif (msg == "gear off") then
+        RotorbarOptions.showUsables = false
+
+    elseif (msg == "neck off") then
+        RotorbarOptions.showGear[2] = false
+    elseif (msg == "r1 off") then
+        RotorbarOptions.showGear[11] = false
+    elseif (msg == "r2 off") then
+        RotorbarOptions.showGear[12] = false
+    elseif (msg == "t1 off") then
+        RotorbarOptions.showGear[13] = false
+    elseif (msg == "t2 off") then
+        RotorbarOptions.showGear[14] = false
+
+    elseif (msg == "neck on") then
+        RotorbarOptions.showGear[2] = true
+    elseif (msg == "r1 on") then
+        RotorbarOptions.showGear[11] = true
+    elseif (msg == "r2 on") then
+        RotorbarOptions.showGear[12] = true
+    elseif (msg == "t1 on") then
+        RotorbarOptions.showGear[13] = true
+    elseif (msg == "t2 on") then
+        RotorbarOptions.showGear[14] = true
     end
 end

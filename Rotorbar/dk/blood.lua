@@ -176,8 +176,8 @@ Blood = {
                 Rotorbar.showNext (Blood.heartStrike)
             end
 
-            -- Death Strike if it heals 10% or completely runic capped and not stealing runic power from a bonestorm.
-            if (not showedDS and Rotorbar.isUsableCooldown("Death Strike") and not bonestormGo and (healthpercent < .9 or runicPercent == 1)) then
+            -- Death Strike for absorbs, but only using half the runic so a needed strike has energy.
+            if (not showedDS and Rotorbar.isUsableCooldown("Death Strike") and not bonestormGo and runicPercent > .5) then
                 Rotorbar.showNext (Blood.deathStrike)
             end
 

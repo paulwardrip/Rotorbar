@@ -20,6 +20,7 @@ HolyPriest = {
         Rotorbar.cooldown("Apotheosis")
         Rotorbar.cooldown("Mass Dispel")
         Rotorbar.cooldown("Purify")
+        Rotorbar.cooldown("Leap of Faith")
         Rotorbar.cooldown("Body and Mind")
         Rotorbar.cooldown("Shining Force")
         Rotorbar.cooldown("Angelic Feather")

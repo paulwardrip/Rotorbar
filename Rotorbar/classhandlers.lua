@@ -37,5 +37,17 @@ function loadClassHandler()
         elseif (Rotorbar.specialization == 4) then
             Rotorbar.loadSpec(RestoDruid)
         end
+
+    elseif (Rotorbar.class == "Warlock") then
+        if (Rotorbar.specialization == 1) then
+            Rotorbar.loadSpec(Affliction)
+
+        elseif (Rotorbar.specialization == 2) then
+            Rotorbar.loadSpec(Demonology)
+
+        elseif (Rotorbar.specialization == 3) then
+            Rotorbar.loadSpec(Destruction)
+        end
+
     end
 end

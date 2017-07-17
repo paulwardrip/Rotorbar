@@ -31,11 +31,13 @@ Shadow = {
         Rotorbar.debuffIcon("Vampiric Touch")
 
         Rotorbar.cooldown("Mind Blast")
+        Rotorbar.cooldown("Vampiric Embrace")
         Rotorbar.cooldown("Shadowfiend").ifNotTalent("Mindbender")
         Rotorbar.cooldown("Mindbender")
         Rotorbar.cooldown("Power Infusion")
         Rotorbar.cooldown("Shadow Crash")
         Rotorbar.cooldown("Surrender to Madness")
+        Rotorbar.cooldown("Power Word: Shield")
     end,
 
     rotation = function()
@@ -62,15 +64,15 @@ Shadow = {
             elseif (Rotorbar.isUsableCooldown("Shadowfiend") and Rotorbar.isBoss()) then
                 Rotorbar.showNext(Shadow.shadowfiend)
             end
-
-            local swDeathStacks = GetSpellCharges("Shadow Word: Death")
-            local swDeathGo = Rotorbar.isUsableCooldown("Shadow Word: Death")
-            if (swDeathGo and swDeathStacks == 2) then
-                Rotorbar.showNext(Shadow.shadowWordDeath)
-            end
         end
 
-        local mindBlastGo, mindBlastLeft = Rotorbar.isUsableCooldown("Mind Blast")
+        local swDeathStacks = GetSpellCharges("Shadow Word: Death")
+        local swDeathGo = Rotorbar.isUsableCooldown("Shadow Word: Death")
+        if (swDeathGo and swDeathStacks == 2) then
+            Rotorbar.showNext(Shadow.shadowWordDeath)
+        end
+
+        local mindBlastGo, _, mindBlastLeft = Rotorbar.isUsableCooldown("Mind Blast")
         if (mindBlastGo and Rotorbar.buffed("Shadowy Insight") > 0) then
             Rotorbar.showNext(Shadow.shadowyInsight)
             showedMindBlast = true

@@ -18,7 +18,7 @@ function registerEvents(events, frame)
             equipped = true
         end
 
-        if (self.sinceLastUpdate >= 3 or (self.started and self.sinceLastUpdate >= .25)) then
+        if (Rotorbar.ready == true and (self.sinceLastUpdate >= 3 or (self.started and self.sinceLastUpdate >= .25))) then
             runhandler()
             self.started = true
             self.sinceLastUpdate = 0;
@@ -33,12 +33,50 @@ function registerEvents(events, frame)
 
     local maxHealth = UnitHealthMax("player")
 
+    function expireDots()
+        for k, v in pairs(Rotorbar._mobsInCombat) do
+            for x, y in pairs(v.dots) do
+                local left = y - GetTime()
+
+                if (left <= 0) then
+                    Rotorbar._mobsInCombat[k].debuff[x] = nil
+                    Rotorbar._mobsInCombat[k].dots[x] = nil
+                else
+                    Rotorbar._mobsInCombat[k].debuff[x] = true
+                end
+            end
+        end
+    end
+
+    function expireMobs()
+        for k, v in pairs(Rotorbar._mobsInCombat) do
+            if (GetTime() - Rotorbar._mobsInCombat[k].since > 5) then
+                Rotorbar._mobsInCombat[k] = nil
+            end
+        end
+    end
+
+    function targetlog()
+        if (combat and UnitName("target") ~= nil) then
+            Rotorbar.target(UnitName("target"))
+        end
+    end
+
+    function onCombatStart()
+        Rotorbar.combatStart()
+        targetlog()
+    end
+
+    function onCombatEnd()
+        Rotorbar.combatEnd()
+    end
+
     function initialize()
         Rotorbar.incomingIcon()
 
         CombatLogResetFilter()
 
-        CombatLogAddFilter("SPELL_CAST_START", COMBATLOG_FILTER_EVERYTHING)
+        CombatLogAddFilter("SPELL_CAST_START,SPELL_CAST_SUCCESS", COMBATLOG_FILTER_EVERYTHING)
         CombatLogAddFilter("SPELL_DAMAGE,SWING_DAMAGE", COMBATLOG_FILTER_EVERYTHING)
         CombatLogAddFilter("SPELL_AURA_APPLIED,SPELL_AURA_REFRESH,SPELL_AURA_REMOVED,SPELL_AURA_BROKEN,SPELL_PERIODIC_DAMAGE", pguid, COMBATLOG_FILTER_EVERYTHING)
         CombatLogAddFilter("UNIT_DIED", COMBATLOG_FILTER_EVERYTHING)
@@ -65,8 +103,8 @@ function registerEvents(events, frame)
         end
 
         Rotorbar.refreshStart()
-        Rotorbar.expireDots()
-        Rotorbar.expireMobs()
+        expireDots()
+        expireMobs()
 
         if (Rotorbar.currentSpec().cooldownsOnly) then
             Rotorbar.showCooldown(Rotorbar.gcd)
@@ -76,7 +114,9 @@ function registerEvents(events, frame)
 
         Rotorbar.currentSpec().rotation()
         refreshCooldowns()
-        showEquipment()
+        if (RotorbarOptions.showUsables) then
+            showEquipment()
+        end
 
         Rotorbar.refresh()
 
@@ -84,11 +124,13 @@ function registerEvents(events, frame)
 
     function showEquipment()
         for k, v in pairs(Rotorbar.equipment) do
-            local usable, ready, icon, cool = v.show()
-            if (usable and ready and (not Rotorbar.currentSpec().always)) then
-                Rotorbar.showNext(icon)
-            elseif (usable and (not ready or Rotorbar.currentSpec().always)) then
-                Rotorbar.showCooldown(cool)
+            if (RotorbarOptions.showGear[k]) then
+                local usable, ready, icon, cool = v.show()
+                if (usable and ready and (not Rotorbar.currentSpec().always)) then
+                    Rotorbar.showNext(icon)
+                elseif (usable and (not ready or Rotorbar.currentSpec().always)) then
+                    Rotorbar.showCooldown(cool)
+                end
             end
         end
     end
@@ -134,6 +176,36 @@ function registerEvents(events, frame)
         gearChange()
     end
 
+    function events:PLAYER_TARGET_CHANGED()
+        if (combat) then
+            targetlog()
+        end
+    end
+
+    function events:VARIABLES_LOADED()
+        if (RotorbarOptions == nil) then
+            RotorbarOptions = {}
+        end
+
+        if (RotorbarOptions.left == nil or RotorbarOptions.top == nil) then
+            RotorbarOptions.left = 0
+            RotorbarOptions.top = -20
+        end
+
+        if (RotorbarOptions.showGear == nil) then
+            RotorbarOptions.showUsables = true
+            RotorbarOptions.showGear = {}
+            RotorbarOptions.showGear[2] = true
+            RotorbarOptions.showGear[11] = true
+            RotorbarOptions.showGear[12] = true
+            RotorbarOptions.showGear[13] = true
+            RotorbarOptions.showGear[14] = true
+        end
+
+        Rotorbar.ready = true
+        Rotorbar.setPosition()
+    end
+
     function events:PARTY_MEMBERS_CHANGED()
         Rotorbar._guidtounit = {};
         Rotorbar._guidtounit[UnitGUID('player')] = 'player';
@@ -148,20 +220,37 @@ function registerEvents(events, frame)
         end;
     end;
 
+
+
     function events:COMBAT_LOG_EVENT(timestamp, type, hideCaster, sourceGUID, sourceName, sourceFlags, sourceRaidFlags,
         destGUID, destName, destFlags, destRaidFlags, spellId, spellName, spellSchool, amount, overkill, school,
         resisted, blocked, absorbed, critical, glancing, crushing)
 
+        function specialSpellHandler()
+            -- Death and Decay Generates 3 different spell events, the first has a different ID than the others, this is used to isolate a single cast.
+            if (spellName == "Death and Decay") then
+                return spellId == 43265
+            end
+
+            return true
+        end
+
         function findMob()
-            if (UnitAffectingCombat("player")) then
-                Rotorbar.combat = true
-                local hostile = bit.band(destFlags, COMBATLOG_OBJECT_REACTION_HOSTILE) > 0 or (isDummyGUID(destGUID))
+            local hostile = bit.band(destFlags, COMBATLOG_OBJECT_REACTION_HOSTILE) > 0 or (isDummyGUID(destGUID))
+            if (UnitAffectingCombat("player") or UnitAffectingCombat("pet") or (sourceGUID == pguid and hostile)) then
+                if (not combat) then
+                    combat = true
+                    onCombatStart()
+                end
+
+
                 if (hostile) then
                     if (sourceGUID == pguid or Rotorbar._guidtounit[sourceGUID] ~= nil) then
                         if (Rotorbar._mobsInCombat[destGUID] == nil) then
-                            Rotorbar._mobsInCombat[destGUID] = { name = destName, debuff = {}, dots = {}, range = -1, since = GetTime() }
+                            Rotorbar._mobTargetNum = Rotorbar._mobTargetNum + 1
+                            Rotorbar._mobsInCombat[destGUID] = { name = destName, debuff = {}, dots = {}, range = -1, since = GetTime(), index = Rotorbar._mobTargetNum }
                         end
-                        return destGUID, 1
+                        return destGUID, 1, Rotorbar._mobsInCombat[destGUID].index
                     end
                 else
                     hostile = bit.band(sourceFlags, COMBATLOG_OBJECT_REACTION_HOSTILE) > 0 or (isDummyGUID(sourceGUID))
@@ -169,17 +258,18 @@ function registerEvents(events, frame)
                     if (hostile) then
                         if (destGUID == pguid or Rotorbar._guidtounit[destGUID] ~= nil) then
                             if (Rotorbar._mobsInCombat[sourceGUID] == nil) then
-                                Rotorbar._mobsInCombat[sourceGUID] = { name = sourceName, debuff = {}, dots = {}, range = -1, since = GetTime() }
+                                Rotorbar._mobsInCombat[sourceGUID] = { name = sourceName, debuff = {}, dots = {}, range = -1, since = GetTime(), index = Rotorbar._mobTargetNum }
                             end
                         end
-                        return sourceGUID, 0
+                        return sourceGUID, 0, Rotorbar._mobsInCombat[sourceGUID].index
                     end
                 end
             else
-                if (Rotorbar.combat == true) then
+                if (combat) then
                     mobsInCombat = {}
+                    combat = false
+                    onCombatEnd()
                 end
-                Rotorbar.combat = false
             end
         end
 
@@ -188,6 +278,10 @@ function registerEvents(events, frame)
                 local mob = findMob()
 
                 if (mob ~= nil) then
+                    if (Rotorbar.currentSpec().aura ~= nil) then
+                        Rotorbar.currentSpec().aura(destGUID, spellName, spellId, 1)
+                    end
+
                     Rotorbar._mobsInCombat[mob].debuff[spellName] = true
                     Rotorbar._mobsInCombat[mob].since = GetTime()
                 end
@@ -195,8 +289,8 @@ function registerEvents(events, frame)
 
         elseif (type == 'SPELL_PERIODIC_DAMAGE') then
             if (destGUID ~= pguid) then
-                local mob = findMob()
-
+                local mob, target, index = findMob()
+                Rotorbar.dot(spellName, amount, destGUID, index)
                 if (mob ~= nil) then
                     if (dotsWithoutAuras[spellName] ~= nil) then
                         if (Rotorbar._mobsInCombat[mob].dots[spellName] == nil) then
@@ -209,15 +303,19 @@ function registerEvents(events, frame)
 
         elseif (type == 'SPELL_AURA_REMOVED' or type == 'SPELL_AURA_BROKEN') then
             local mob = findMob()
-
             if (mob ~= nil) then
-                Rotorbar._mobsInCombat[mob].debuff[spellName] = nil
-                Rotorbar._mobsInCombat[mob].since = GetTime()
+                if (Rotorbar.currentSpec().aura ~= nil) then
+                    Rotorbar.currentSpec().aura(destGUID, spellName, spellId, -1)
+                end
+                if (Rotorbar._mobsInCombat[mob] ~= nil and spellName ~= nil) then
+                 Rotorbar._mobsInCombat[mob].debuff[spellName] = nil
+                 Rotorbar._mobsInCombat[mob].since = GetTime()
+                end
             end
 
         elseif (type == 'SPELL_DAMAGE') then
             if (sourceName ~= nil and UnitIsUnit(sourceName, "player")) then
-                local mob, target = findMob()
+                local mob, target, index = findMob()
                 local name, rank, icon, castingTime, minRange, maxRange, spellID = GetSpellInfo(spellName)
 
                 if (target == 1 and sourceGUID == pguid) or (target == 0 and destGUID == pguid) then
@@ -225,13 +323,16 @@ function registerEvents(events, frame)
                         Rotorbar._mobsInCombat[mob].range = maxRange
                         Rotorbar._mobsInCombat[mob].since = GetTime()
                     end
-                    if (sourceGUID == pguid and dotsWithoutAuras[spellName] ~= nil) then
-                        Rotorbar._mobsInCombat[mob].since = GetTime()
-                        if (Rotorbar._mobsInCombat[mob].dots[spellName] ~= nil) then
-                            Rotorbar._mobsInCombat[mob].dots[spellName] = GetTime() + dotsWithoutAuras[spellName].refresh
-                        else
-                            Rotorbar._mobsInCombat[mob].dots[spellName] = GetTime() + dotsWithoutAuras[spellName].time
+                    if (sourceGUID == pguid) then
+                        if (dotsWithoutAuras[spellName] ~= nil) then
+                            Rotorbar._mobsInCombat[mob].since = GetTime()
+                            if (Rotorbar._mobsInCombat[mob].dots[spellName] ~= nil) then
+                                Rotorbar._mobsInCombat[mob].dots[spellName] = GetTime() + dotsWithoutAuras[spellName].refresh
+                            else
+                                Rotorbar._mobsInCombat[mob].dots[spellName] = GetTime() + dotsWithoutAuras[spellName].time
+                            end
                         end
+                        Rotorbar.damage(spellName,amount,destGUID,index)
                     end
                 end
 
@@ -243,23 +344,6 @@ function registerEvents(events, frame)
                     cast = false,
                     target = sourceGUID == UnitGUID("target")
                 })
-
-                local hitFor = amount/maxHealth
-                if (Rotorbar.isBoss() and hitFor > .25) then
-                    if (RotorbarBossAbilities[sourceGUID] == nil) then
-                        RotorbarBossAbilities[sourceGUID] = { spell={} }
-
-                        if (RotorbarBossAbilities[sourceGUID].spell[spellId] == nil) then
-                            RotorbarBossAbilities[sourceGUID].spell[spellId] = {
-                                name = spellName,
-                                school = school,
-                                percent = hitFor
-                            }
-                        end
-                    elseif (RotorbarBossAbilities[sourceGUID].spell[spellId].hitFor < hitFor) then
-                        RotorbarBossAbilities[sourceGUID].spell[spellId].hitFor = hitFor
-                    end
-                end
             end
 
         elseif (type == 'SPELL_CAST_START' and Rotorbar.currentSpec().tank == true) then
@@ -271,10 +355,16 @@ function registerEvents(events, frame)
                     cast = true,
                     target = sourceGUID == UnitGUID("target")
                 }
-                if (Rotorbar.isBoss() and RotorbarBossAbilities[sourceGUID] ~= nil and RotorbarBossAbilities[sourceGUID].spell[spellId] ~= nil) then
-                    incoming.maxdamage = RotorbarBossAbilities[sourceGUID].spell[spellId].hitFor
-                end
                 Rotorbar.updateIncoming(incoming)
+            end
+
+        elseif (type == 'SPELL_CAST_START' or type == 'SPELL_CAST_SUCCESS') then
+            if (sourceGUID == pguid) then
+                local mob, target = findMob()
+                Rotorbar.lastCast = spellName
+                if (combat and specialSpellHandler()) then
+                    Rotorbar.cast(spellName)
+                end
             end
 
         elseif (type == 'SWING_DAMAGE') then
@@ -297,12 +387,13 @@ function registerEvents(events, frame)
             end
 
         elseif (type == 'UNIT_DIED') then
-            local mob = findMob()
+            local mob, target, index = findMob()
             Rotorbar.updateIncoming()
 
             if (sourceGUID == pguid) then
                 Rotorbar._mobsInCombat = {}
             elseif (mob ~= nil) then
+                Rotorbar.kill(mob, index)
                 Rotorbar._mobsInCombat[mob] = nil
             end
         end

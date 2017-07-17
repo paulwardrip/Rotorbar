@@ -76,22 +76,22 @@ Unholy = {
         -- When health is low, suggest defensive spells.
 
         if (Rotorbar.isUsableCooldown("Corpse Shield") and healthpercent < .40) then
-            Rotorbar.showNext(Unholy.corpseShield)
+            Rotorbar.showNext(Unholy.corpseShield, "dangerously low health")
         end
 
         if (Rotorbar.isUsableCooldown("Icebound Fortitude") and healthpercent < .50) then
-            Rotorbar.showNext (Unholy.iceboundFortitude)
+            Rotorbar.showNext (Unholy.iceboundFortitude, "low health")
         end
 
         if (Rotorbar.isUsableCooldown("Death Strike") and healthpercent < .75) then
-            Rotorbar.showNext (Unholy.deathStrike)
+            Rotorbar.showNext (Unholy.deathStrike, "heal damage")
         end
 
         local scourgeGo = Rotorbar.isUsableCooldown("Scourge Strike")
 
 
         if (succor > 0) then
-            Rotorbar.showNext(Rotorbar.deathSuccor)
+            Rotorbar.showNext(Rotorbar.deathSuccor, "Dark Succor Proc")
         end
 
 
@@ -102,27 +102,27 @@ Unholy = {
         if (arbiter) then
             if (necro > 0 and IsUsableSpell("Scourge Strike") and wounds > 0) then
                 if (Rotorbar.isTalent("Clawing Shadows")) then
-                    Rotorbar.showNext(Unholy.arbiterNecroClawing)
+                    Rotorbar.showNext(Unholy.arbiterNecroClawing, "Necrosis proc")
                 else
-                    Rotorbar.showNext(Unholy.arbiterNecroScourge)
+                    Rotorbar.showNext(Unholy.arbiterNecroScourge, "Necrosis proc")
                 end
                 showedClawing = true
             end
 
             if (IsUsableSpell("Death Coil")) then
-                Rotorbar.showNext (Unholy.arbiterCoil)
+                Rotorbar.showNext (Unholy.arbiterCoil, "spend runic power during Dark Arbiter")
             end
 
             if (not showedClawing and IsUsableSpell("Scourge Strike") and wounds > 0) then
                 if (Rotorbar.isTalent("Clawing Shadows")) then
-                    Rotorbar.showNext(Unholy.arbiterClawing)
+                    Rotorbar.showNext(Unholy.arbiterClawing, "burst wounds and generate runic power during Dark Arbiter")
                 else
-                    Rotorbar.showNext(Unholy.arbiterScourge)
+                    Rotorbar.showNext(Unholy.arbiterScourge, "burst wounds and generate runic power during Dark Arbiter")
                 end
             end
 
             if (IsUsableSpell("Festering Strike")) then
-                Rotorbar.showNext(Unholy.arbiterFestering)
+                Rotorbar.showNext(Unholy.arbiterFestering, "generate wounds and runic power during Dark Arbiter")
             end
 
         else
@@ -132,9 +132,9 @@ Unholy = {
             -- Necrosis Proc, Clawing Shadows
             if (necro > 0 and wounds > 0 and IsUsableSpell("Scourge Strike")) then
                 if (Rotorbar.isTalent("Clawing Shadows")) then
-                    Rotorbar.showNext(Unholy.necrosisClawing)
+                    Rotorbar.showNext(Unholy.necrosisClawing, "Necrosis proc")
                 else
-                    Rotorbar.showNext(Unholy.necrosisScourge)
+                    Rotorbar.showNext(Unholy.necrosisScourge, "Necrosis proc")
                 end
                 showedClawing = true
             end
@@ -142,12 +142,12 @@ Unholy = {
             -- Sudden Doom, Death Coil
             local suddenDoom = Rotorbar.buffed("Sudden Doom")
             if (suddenDoom > 0) then
-                Rotorbar.showNext (Unholy.suddenDoom)
+                Rotorbar.showNext (Unholy.suddenDoom, "Sudden Doom proc")
             end
 
             local armyGo = Rotorbar.isUsableCooldown("Army of the Dead")
             if (armyGo and Rotorbar.isBoss()) then
-                Rotorbar.showNext (Unholy.armyoftheDead)
+                Rotorbar.showNext (Unholy.armyoftheDead, "Boss engaged, off cooldown")
             end
 
             local arbiterKnown = Rotorbar.isTalent("Dark Arbiter")
@@ -155,39 +155,39 @@ Unholy = {
             local arbiterSoon = Rotorbar.isTalent("Dark Arbiter") and Rotorbar.isBoss() and (gargoyleGo or gargoyleLeft < 15)
             if (gargoyleGo and Rotorbar.isBoss() and (not arbiterKnown or runicPercent == 1)) then
                 if (Rotorbar.isTalent("Dark Arbiter")) then
-                    Rotorbar.showNext (Unholy.darkArbiter)
+                    Rotorbar.showNext (Unholy.darkArbiter, "Boss engaged, runic power full")
                 else
-                    Rotorbar.showNext (Unholy.summonGargoyle)
+                    Rotorbar.showNext (Unholy.summonGargoyle, "Boss engaged, off cooldown")
                 end
             end
 
             local xformGo = Rotorbar.isUsableCooldown("Dark Transformation")
             if (UnitExists("pet")) then
                  if (xformGo) then
-                     Rotorbar.showNext (Unholy.darkTransformation)
+                     Rotorbar.showNext (Unholy.darkTransformation, "off cooldown")
                 end
-             else
-                Rotorbar.showNext (Unholy.raiseDead)
+             elseif Rotorbar.isUsableCooldown("Raise Dead") then
+                Rotorbar.showNext (Unholy.raiseDead, "no pet")
             end
 
             local defileGo, defileKnown = Rotorbar.isUsableCooldown("Defile")
             if (defileGo) then
-                Rotorbar.showNext (Unholy.defile)
+                Rotorbar.showNext (Unholy.defile, "off cooldown")
             end
 
             if (IsUsableSpell("Outbreak")) then
                 local virulent = Rotorbar.debuffed("Virulent Plague")
                 if (virulent == 0) then
-                    Rotorbar.showNext(Unholy.outbreak)
+                    Rotorbar.showNext(Unholy.outbreak, "target does not have Virulent Plague")
                 end
             end
 
             if (Rotorbar.isUsableCooldown("Blighted Rune Weapon")) then
-                Rotorbar.showNext (Unholy.blightedRuneWeapon)
+                Rotorbar.showNext (Unholy.blightedRuneWeapon, "off cooldown")
             end
 
             if (Rotorbar.isUsableCooldown("Soul Reaper") and runes >= 3 and wounds >= 3) then
-                Rotorbar.showNext (Unholy.soulReaper)
+                Rotorbar.showNext (Unholy.soulReaper, "off cooldown enough wounds and runes to last duration")
             end
 
             local apocalypseGo, _, apocalypseLeft = Rotorbar.isUsableCooldown("Apocalypse")
@@ -196,13 +196,13 @@ Unholy = {
             local apocalypseStealing = (apocalypseSoon and wounds < 8)
 
             if (apocalypseGo and wounds >= 6) then
-                Rotorbar.showNext(Unholy.apocalypse)
+                Rotorbar.showNext(Unholy.apocalypse, "off cooldown")
             end
 
             -- Death and Decay whenever cleave is possible
             if (not defileKnown) then
                 if (Rotorbar.targets() >= 3 and Rotorbar.buffed("Death and Decay") == 0 and Rotorbar.isUsableCooldown("Death and Decay")) then
-                    Rotorbar.showNext(Unholy.deathAndDecay)
+                    Rotorbar.showNext(Unholy.deathAndDecay, Rotorbar.targets() .. "targets, enable cleave")
                 end
             end
 
@@ -213,10 +213,12 @@ Unholy = {
                     local withSores = Rotorbar.targetsDebuffed("Festering Wound")
 
                     if (withPlague >= 3 and necro == 0) then
-                        if (Rotorbar.isTalent("Bursting Sores") and withSores == 0 and runes <= 1) then
-                            Rotorbar.showNext(Unholy.epidemic)
+                        if (Rotorbar.isTalent("Bursting Sores")) then
+                            if (withSores == 0 and runes <= 1) then
+                                Rotorbar.showNext(Unholy.epidemic, "multiple targets with Virulent Plague and no sores to burst")
+                            end
                         else
-                            Rotorbar.showNext(Unholy.epidemic)
+                            Rotorbar.showNext(Unholy.epidemic, "multiple targets with Virulent Plague and no sores to burst")
                         end
                     end
                 end
@@ -227,19 +229,19 @@ Unholy = {
 
                 local showedFestering = false
                 if (IsUsableSpell("Festering Strike") and (not IsUsableSpell("Death Coil") or wounds == 0)) then
-                    Rotorbar.showNext(Unholy.festeringStrike)
+                    Rotorbar.showNext(Unholy.festeringStrike, "need to generate sores and runic power for Necrosis")
                     showedFestering = true
                 end
 
                 if (necro == 0 and suddenDoom == 0 and IsUsableSpell("Death Coil") and wounds >= 1 and runes >= 1
                     and not apocalypseStealing and not arbiterSoon) then
-                    Rotorbar.showNext (Unholy.deathCoil)
+                    Rotorbar.showNext (Unholy.deathCoil, "trigger Necrosis")
                 end
 
                 epi()
 
                 if (not showedFestering and IsUsableSpell("Festering Strike")) then
-                    Rotorbar.showNext(Unholy.festeringStrike)
+                    Rotorbar.showNext(Unholy.festeringStrike, "generate more sores")
                 end
 
             else
@@ -247,9 +249,9 @@ Unholy = {
                     -- Against multiple targets you should always use Clawing Shadows (unless Apocalypse is almost ready, then make more sores)
                     if (not apocalypseStealing) then
                         if (Rotorbar.isTalent("Clawing Shadows")) then
-                            Rotorbar.showNext(Unholy.clawingShadows)
+                            Rotorbar.showNext(Unholy.clawingShadows, "burst sores")
                         else
-                            Rotorbar.showNext(Unholy.scourgeStrike)
+                            Rotorbar.showNext(Unholy.scourgeStrike, "burst sores")
                         end
                     end
                 end
@@ -258,12 +260,12 @@ Unholy = {
 
                 -- Festering Strike: Make more sores
                 if (not showedFestering and IsUsableSpell("Festering Strike")) then
-                    Rotorbar.showNext(Unholy.festeringStrike)
+                    Rotorbar.showNext(Unholy.festeringStrike, "generate more sores")
                 end
 
                 -- Death Coil Filler
                 if (suddenDoom == 0 and IsUsableSpell("Death Coil") and not arbiterSoon) then
-                    Rotorbar.showNext (Unholy.deathCoil)
+                    Rotorbar.showNext (Unholy.deathCoil, "death coil as filler")
                 end
             end
 

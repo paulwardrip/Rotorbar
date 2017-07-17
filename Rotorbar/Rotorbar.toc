@@ -14,7 +14,12 @@ druid/balance.lua
 druid/feral.lua
 druid/guardian.lua
 druid/restoration.lua
+warlock/affliction.lua
+warlock/destruction.lua
+warlock/demonology.lua
 events.lua
 classhandlers.lua
 main.lua
 options.lua
+
+##SavedVariablesPerCharacter RotorbarOptions
